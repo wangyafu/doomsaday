@@ -41,14 +41,23 @@ export interface Shelter {
 }
 
 // API 响应类型
-export interface NarrateResponse {
-  log_text: string
-  has_crisis: boolean
-  choices: string[] | null
+
+// Narrate 状态更新响应（仅在无危机事件时使用）
+export interface NarrateStateResponse {
+  stat_changes: {
+    hp: number
+    san: number
+    hunger: number
+  }
+  item_changes: {
+    remove: InventoryItem[]
+    add: InventoryItem[]
+  }
+  new_hidden_tags: string[]
 }
 
-export interface JudgeResponse {
-  narrative: string
+// Judge 状态更新响应
+export interface JudgeStateResponse {
   score: number
   stat_changes: {
     hp: number

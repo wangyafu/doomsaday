@@ -30,7 +30,7 @@ OPENAI_MODEL=gpt-4o-mini
 ### 3. 启动服务
 
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uv run python -m app.main
 ```
 
 ## API 接口

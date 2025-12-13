@@ -1,6 +1,7 @@
 """
 数据模型定义 - 使用 Pydantic 进行请求/响应验证
 """
+from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, Field
 
@@ -50,13 +51,6 @@ class NarrateRequest(BaseModel):
     shelter: Optional[Shelter] = Field(default=None, description="避难所信息")
 
 
-class NarrateResponse(BaseModel):
-    """每日剧情生成响应"""
-    log_text: str = Field(..., description="今日日志文本")
-    has_crisis: bool = Field(..., description="是否有危机事件")
-    choices: Optional[list[str]] = Field(default=None, description="选项列表，无危机时为空")
-
-
 # ==================== Judge 接口模型 ====================
 
 class JudgeRequest(BaseModel):
@@ -87,15 +81,6 @@ class StatChanges(BaseModel):
     hunger: int = Field(default=0, description="饱腹度变化")
 
 
-class JudgeResponse(BaseModel):
-    """行动判定响应"""
-    narrative: str = Field(..., description="判定结果叙述")
-    score: int = Field(..., ge=0, le=100, description="行动评分 0-100")
-    stat_changes: StatChanges = Field(default_factory=StatChanges, description="状态变更")
-    item_changes: ItemChanges = Field(default_factory=ItemChanges, description="物品变更")
-    new_hidden_tags: list[str] = Field(default_factory=list, description="新增隐藏标签")
-
-
 # ==================== Ending 接口模型 ====================
 
 class EndingRequest(BaseModel):
@@ -113,3 +98,59 @@ class EndingResponse(BaseModel):
     epithet: str = Field(..., description="四字人设总结词")
     comment: str = Field(..., description="毒舌评语")
     radar_chart: list[int] = Field(..., min_length=5, max_length=5, description="五维雷达图数据")
+
+
+# ==================== 流式输出模型 ====================
+
+class StreamEventType(str, Enum):
+    """流式输出事件类型"""
+    CONTENT = "content"      # 叙事文本片段
+    CRISIS = "crisis"        # 危机事件标识
+    CHOICES = "choices"      # 选项列表
+    DONE = "done"            # 流式完成
+    ERROR = "error"          # 错误事件
+
+
+class StreamEvent(BaseModel):
+    """流式输出事件"""
+    type: StreamEventType
+    text: Optional[str] = None
+    has_crisis: Optional[bool] = None
+    choices: Optional[list[str]] = None
+    error: Optional[str] = None
+
+
+# ==================== Narrate 状态更新模型 ====================
+
+class NarrateStateRequest(BaseModel):
+    """Narrator状态更新请求（仅在无危机事件时调用）"""
+    day: int = Field(..., description="当前天数")
+    stats: Stats = Field(..., description="玩家当前状态")
+    inventory: list[InventoryItem] = Field(default_factory=list, description="背包物品列表")
+    narrative_context: str = Field(..., description="刚才生成的叙事内容")
+
+
+class NarrateStateResponse(BaseModel):
+    """Narrator状态更新响应"""
+    stat_changes: StatChanges = Field(default_factory=StatChanges, description="状态变更")
+    item_changes: ItemChanges = Field(default_factory=ItemChanges, description="物品变更")
+    new_hidden_tags: list[str] = Field(default_factory=list, description="新增隐藏标签")
+
+
+# ==================== Judge 状态更新模型 ====================
+
+class JudgeStateRequest(BaseModel):
+    """Judge状态更新请求"""
+    event_context: str = Field(..., description="事件上下文")
+    action_content: str = Field(..., description="玩家选择的行动内容")
+    narrative_result: str = Field(..., description="刚才生成的判定叙事")
+    stats: Stats = Field(..., description="玩家当前状态")
+    inventory: list[InventoryItem] = Field(default_factory=list, description="背包物品列表")
+
+
+class JudgeStateResponse(BaseModel):
+    """Judge状态更新响应"""
+    score: int = Field(..., ge=0, le=100, description="行动评分 0-100")
+    stat_changes: StatChanges = Field(default_factory=StatChanges, description="状态变更")
+    item_changes: ItemChanges = Field(default_factory=ItemChanges, description="物品变更")
+    new_hidden_tags: list[str] = Field(default_factory=list, description="新增隐藏标签")

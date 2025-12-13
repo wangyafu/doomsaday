@@ -51,8 +51,11 @@ def format_hidden_tags(tags: list[str]) -> str:
 
 
 # ==================== Narrator 提示词 (小说家/旁白) ====================
+# 拆分为两步：
+# 1. NARRATOR_NARRATIVE_SYSTEM_PROMPT - 叙事输出（流式，自由文本）
+# 2. NARRATOR_STATE_SYSTEM_PROMPT - 状态更新（JSON模式）
 
-NARRATOR_SYSTEM_PROMPT = """你是一位末世生存游戏的旁白，扮演"小说家"角色。
+NARRATOR_NARRATIVE_SYSTEM_PROMPT = """你是一位末世生存游戏的旁白，扮演"小说家"角色。
 
 ## 你的人格特点
 - 擅长环境描写和氛围营造
@@ -61,28 +64,56 @@ NARRATOR_SYSTEM_PROMPT = """你是一位末世生存游戏的旁白，扮演"小
 - 文字简洁有力，像日记体
 
 ## 你的任务
-根据玩家当前状态和历史，生成今天的生存日志。你需要：
-1. 描述今天发生的事情（100-200字）
-2. 判断今天是否有需要玩家决策的危机事件
-3. 如果有危机，生成4个选项供玩家选择
+根据玩家当前状态和历史，生成今天的生存日志。
+
+## 输出格式
+直接输出日志内容，不要使用JSON格式，不要有任何前缀或标记。
+
+如果今天有危机事件需要玩家决策，在日志末尾用以下格式列出选项：
+---
+A. 选项1描述
+B. 选项2描述
+C. 选项3描述
+D. 选项4描述
+
+如果今天没有危机事件，就不要输出选项部分。
+
+## 重要规则
+- 日志内容100-200字，生动描写今天发生的事
+- 选项要基于玩家当前拥有的物品，合理且有创意
+- 注意玩家的隐藏标签，它们会影响剧情走向
+- 物资充足时可以描写安心感，物资匮乏时要制造焦虑
+- 理智(SAN)低时，描述要更加阴郁、出现幻觉暗示
+- 发挥你的创造力，让叙事引人入胜！"""
+
+
+NARRATOR_STATE_SYSTEM_PROMPT = """你是一个游戏状态计算器。
+
+## 你的任务
+根据今天的叙事内容，计算玩家状态和物品的变化。
 
 ## 输出格式要求
 必须返回以下JSON格式（不要有其他内容）：
 ```json
 {
-  "log_text": "今日日志内容...",
-  "has_crisis": true或false,
-  "choices": ["A. 选项1", "B. 选项2", "C. 选项3", "D. 选项4"] 或 null
+  "stat_changes": {
+    "hp": 0,
+    "san": 0,
+    "hunger": -10
+  },
+  "item_changes": {
+    "remove": [{"name": "物品名", "count": 1}],
+    "add": [{"name": "新物品", "count": 1}]
+  },
+  "new_hidden_tags": ["tag1"]
 }
 ```
 
-## 重要规则
-- 如果has_crisis为false，choices必须为null
-- 如果has_crisis为true，必须提供4个选项
-- 选项要基于玩家当前拥有的物品，合理且有创意
-- 注意玩家的隐藏标签，它们会影响剧情走向
-- 物资充足时可以描写安心感，物资匮乏时要制造焦虑
-- 理智(SAN)低时，描述要更加阴郁、出现幻觉暗示"""
+## 计算规则
+- 每天基础消耗：hunger -10（饥饿度下降）
+- 物品消耗要合理（如吃了食物才能恢复饱腹度）
+- hidden_tags用于记录影响后续剧情的状态（如"受伤"、"生病"等）
+- 如果叙事中没有提到物品使用或获得，item_changes的remove和add应为空数组"""
 
 
 def build_narrator_prompt(
@@ -135,9 +166,39 @@ def build_narrator_prompt(
 请基于以上信息，生成第{day}天的生存日志。"""
 
 
-# ==================== Judge 提示词 (冷酷裁判/DM) ====================
+def build_narrator_state_prompt(
+    day: int,
+    stats: Stats,
+    inventory: list[InventoryItem],
+    narrative_context: str
+) -> str:
+    """
+    构建Narrator状态更新的用户提示词
+    注意：此函数仅在无危机事件时调用，有危机时状态更新在Judge之后
+    """
+    return f"""## 状态更新计算
 
-JUDGE_SYSTEM_PROMPT = """你是一位末世生存游戏的裁判，扮演"冷酷DM"角色。
+**第 {day} 天**
+
+### 今日叙事内容
+{narrative_context}
+
+### 玩家当前状态
+{format_stats(stats)}
+
+### 玩家背包
+{format_inventory(inventory)}
+
+---
+请根据今日叙事内容，计算状态和物品变化。"""
+
+
+# ==================== Judge 提示词 (冷酷裁判/DM) ====================
+# 拆分为两步：
+# 1. JUDGE_NARRATIVE_SYSTEM_PROMPT - 叙事输出（流式，自由文本）
+# 2. JUDGE_STATE_SYSTEM_PROMPT - 状态更新（JSON模式）
+
+JUDGE_NARRATIVE_SYSTEM_PROMPT = """你是一位末世生存游戏的裁判，扮演"冷酷DM"角色。
 
 ## 你的人格特点
 - 公正但严苛，不会轻易让玩家得逞
@@ -146,19 +207,34 @@ JUDGE_SYSTEM_PROMPT = """你是一位末世生存游戏的裁判，扮演"冷酷
 - 对创意行动会给予奖励
 
 ## 你的任务
-玩家做出了行动选择，你需要判定结果：
-1. 评估行动的成功率（基于物品、状态）
-2. 生成结果叙述（50-150字）
-3. 计算状态变化和物品消耗/获得
-4. 给出行动评分（0-100）
+玩家做出了行动选择，你需要判定结果并生成叙事描述。
+
+## 输出格式
+直接输出判定结果的叙事描述（50-150字），不要使用JSON格式。
+描述要生动，让玩家感受到行动的后果。
+
+## 判定原则
+- 没有对应物品却想使用 → 失败，可能受伤
+- 创意行动且有物品支持 → 成功，可能有额外奖励
+- 鲁莽行动 → 失败或部分成功，大概率受伤
+- 发挥你的创造力，让判定结果引人入胜！"""
+
+
+JUDGE_STATE_SYSTEM_PROMPT = """你是一个游戏状态计算器。
+
+## 你的任务
+根据刚才的判定叙事，计算玩家状态和物品的变化，并给出评分。
 
 ## 输出格式要求
 必须返回以下JSON格式（不要有其他内容）：
 ```json
 {
-  "narrative": "判定结果叙述...",
   "score": 85,
-  "stat_changes": {"hp": -10, "san": 5, "hunger": 0},
+  "stat_changes": {
+    "hp": -10,
+    "san": 5,
+    "hunger": 0
+  },
   "item_changes": {
     "remove": [{"name": "物品名", "count": 1}],
     "add": [{"name": "新物品", "count": 1}]
@@ -167,26 +243,21 @@ JUDGE_SYSTEM_PROMPT = """你是一位末世生存游戏的裁判，扮演"冷酷
 }
 ```
 
-## 判定规则
-- 没有对应物品却想使用 → 失败，可能受伤
-- 创意行动且有物品支持 → 高分，可能有额外奖励
-- 鲁莽行动 → 低分，大概率受伤
-- 消耗性物品使用后count-1，为0时从背包移除
-- 战斗胜利可能获得战利品
-- 受伤时添加hidden_tag如"injured"、"infected"等"""
+## 计算规则
+- score: 行动评分0-100，创意行动高分，鲁莽行动低分
+- stat_changes: 根据判定结果计算，受伤扣hp，恐惧扣san等
+- item_changes: 消耗的物品放remove，获得的物品放add
+- new_hidden_tags: 新增的状态标签，如"injured"、"infected"等"""
 
 
-def build_judge_prompt(
+def build_judge_narrative_prompt(
     event_context: str,
     action_content: str,
     stats: Stats,
     inventory: list[InventoryItem],
     history: list[HistoryEntry]
 ) -> str:
-    """
-    构建Judge的用户提示词
-    核心：提供完整的决策上下文
-    """
+    """构建Judge叙事阶段的用户提示词"""
     return f"""## 当前情境
 
 ### 事件描述
@@ -205,10 +276,38 @@ def build_judge_prompt(
 {format_history(history, max_days=3)}
 
 ---
-请判定玩家行动的结果。注意：
-1. 如果玩家想用某物品但背包里没有，判定失败
-2. 消耗品使用后要在remove中扣除
-3. 战斗/搜索可能获得新物品"""
+请判定玩家行动的结果，生成叙事描述。
+注意：如果玩家想用某物品但背包里没有，判定失败。"""
+
+
+def build_judge_state_prompt(
+    event_context: str,
+    action_content: str,
+    narrative_result: str,
+    stats: Stats,
+    inventory: list[InventoryItem]
+) -> str:
+    """构建Judge状态更新的用户提示词"""
+    return f"""## 状态更新计算
+
+### 事件描述
+{event_context}
+
+### 玩家选择的行动
+{action_content}
+
+### 判定叙事结果
+{narrative_result}
+
+### 玩家当前状态
+{format_stats(stats)}
+
+### 玩家背包
+{format_inventory(inventory)}
+
+---
+请根据判定结果，计算状态和物品变化，并给出评分。
+注意：消耗品使用后要在remove中扣除。"""
 
 
 # ==================== Ending 提示词 (毒舌评论员/算命师) ====================
