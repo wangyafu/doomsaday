@@ -5,14 +5,13 @@ Narrator 提示词模块 - 小说家/旁白角色
 1. 生成每日生存日志（流式输出）
 2. 决定是否触发危机事件
 3. 设计 A/B/C/D 选项
-4. 计算无危机日的状态更新
+4. 在无危机事件时，同时输出状态更新（XML标签包裹的JSON）
 """
 from app.models import Stats, InventoryItem, HistoryEntry, Shelter
 from app.prompts.common import (
     GAME_WORLD_CONTEXT,
     GAME_MECHANICS_CONTEXT,
     STATE_CHANGE_RULES,
-    STATE_OUTPUT_FORMAT,
     format_stats,
     format_inventory,
     format_inventory_detailed,
@@ -73,24 +72,35 @@ NARRATOR_NARRATIVE_SYSTEM_PROMPT = f"""
 </task>
 
 <output_format>
-## 输出格式
+
 
 ### 无危机事件时
-直接输出日志内容，不要有任何前缀、标记或JSON。
+先输出日志内容，然后在末尾添加状态更新标签：
+<example>
 
+[日志正文...]
+
+<state_update>
+{{"stat_changes": {{"hp": 0, "san": 5, "hunger": 0}}, "item_changes": {{"remove": [{{"name": "压缩饼干", "count": 1}}], "add": []}}, "new_hidden_tags": [], "remove_hidden_tags": []}}
+</state_update>
+</example>
 ### 有危机事件时
-先输出日志内容，然后用以下格式列出选项，最后添加隐藏的后果说明：
+先输出日志内容，然后用 <options> 标签包裹选项，最后添加隐藏的后果说明（无需状态更新，由<AI裁判引擎>处理）：
+<example>
+[日志正文...]
 
----
+<options>
 A. 选项1描述（基于玩家物品的合理行动）
 B. 选项2描述
 C. 选项3描述
 D. 选项4描述
+</options>
 
 <hidden>
 在这里说明哪些选项是致死选项，这里的内容不会被玩家看到。
 如：A、B选项是致死选项。
 </hidden>
+</example>
 
 ### 选项设计原则
 - 选项要基于玩家当前拥有的物品
@@ -99,10 +109,21 @@ D. 选项4描述
 - 可以设计道德困境（如：救人还是保命）
 
 ### <hidden>标签说明
-- 此部分仅供Judge（裁判）参考，前端不展示给玩家
-- 简要说明每个选项的预期后果和风险
-- 包含大致的数值影响范围（不必精确）
-- 如果有概率性结果，说明成功/失败的可能后果
+- 此部分仅供Judge（裁判）参考，前端不展示给玩家。
+- 简要说明每个选项的预期后果和风险，特别是哪些选项直接导致玩家死亡。
+
+
+### <state_update>标签说明（仅无危机事件时需要）
+必须包含以下字段的JSON对象：
+- stat_changes: 对象，包含 hp、san、hunger 三个数值（可正可负可为0）
+- item_changes: 对象，包含 remove 和 add 两个数组
+- new_hidden_tags: 字符串数组（新增的标签）
+- remove_hidden_tags: 字符串数组（需要移除的标签）
+
+状态变化规则：
+- 如果用户缺乏食物，则每日基础 hunger -30。否则hunger不变。
+- 消耗品（食物、药品）使用后必须在 remove 中扣除。
+- 工具类物品（武器等）通常不消耗。
 </output_format>
 
 <constraints>
@@ -115,27 +136,11 @@ D. 选项4描述
 - 尊重游戏世界观设定
 
 ### 禁止行为
-- 不要输出JSON格式
-- 不要添加任何元信息或标记
 - 不要打破第四面墙
-- 不要出现现实世界的具体品牌（可用通用描述）
 - 不要生成过于血腥/色情的内容
 - 不要让玩家"突然获得"背包里没有的物品
 </constraints>
 """
-
-
-# ==================== 状态更新提示词 ====================
-
-NARRATOR_STATE_SYSTEM_PROMPT = f"""你是游戏状态计算引擎，负责将叙事内容转化为精确的数值变化。你不生成叙事，只做数学计算和逻辑判断。
-
-## 任务
-根据今天的叙事内容，计算玩家状态和物品的变化。
-注意：此时没有危机事件，只需计算日常消耗和叙事中提到的变化。
-
-{STATE_CHANGE_RULES}
-
-{STATE_OUTPUT_FORMAT}"""
 
 
 # ==================== 提示词构建函数 ====================
@@ -207,53 +212,4 @@ def build_narrator_prompt(
 """
 
 
-def build_narrator_state_prompt(
-    day: int,
-    stats: Stats,
-    inventory: list[InventoryItem],
-    hidden_tags: list[str],
-    history: list[HistoryEntry],
-    narrative_context: str
-) -> str:
-    """
-    构建Narrator状态更新的用户提示词
-    注意：此函数仅在无危机事件时调用
-    """
-    return f"""
-<context>
-## 状态更新计算 - 末世爆发后第 {day} 天
 
-### 今日叙事内容（刚刚生成的）
-<narrative>
-{narrative_context}
-</narrative>
-
-### 玩家当前属性（更新前）
-{format_stats(stats)}
-
-### 玩家背包（更新前）
-{format_inventory_detailed(inventory)}
-
-### 当前隐藏标签
-{format_hidden_tags(hidden_tags)}
-</context>
-
-<instruction>
-请仔细阅读今日叙事，提取以下信息并计算状态变化：
-
-1. 玩家是否吃了东西？→ 影响 hunger
-2. 玩家是否受伤？→ 影响 hp
-3. 玩家经历了什么情绪事件？→ 影响 san
-4. 玩家使用了什么物品？→ 需要从背包扣除
-5. 玩家获得了什么物品？→ 需要添加到背包
-6. 标签变更：
-   - new_hidden_tags：是否有新的持续状态需要添加？
-   - remove_hidden_tags：是否有已存在的标签需要移除？（如伤口痊愈、威胁解除等）
-
-注意：
-- 每天基础 hunger -30（饥饿消耗）
-- 只有叙事中明确提到的物品使用才需要扣除
-- 移除标签时必须使用与现有标签完全相同的字符串
-- 返回纯JSON，不要有其他内容
-</instruction>
-"""

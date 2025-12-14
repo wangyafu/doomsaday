@@ -5,12 +5,12 @@ import { useGameStore } from "@/stores/gameStore";
 import { useUiStore } from "@/stores/uiStore";
 import {
   narrateStream,
-  narrateState,
   judgeStream,
-  judgeState,
   parseNarrativeChoices,
+  parseJudgeResult,
   filterHiddenContent,
 } from "@/api";
+import type { NarrateStateResponse, JudgeStateResponse, InventoryItem } from "@/types";
 import StatBar from "@/components/Game/StatBar.vue";
 import InventoryGrid from "@/components/Game/InventoryGrid.vue";
 
@@ -34,11 +34,44 @@ const showCustomInput = ref(false);
 const showInventory = ref(false);
 // 是否流式输出完成
 const streamDone = ref(false);
-// 是否正在计算状态更新
-const isCalculatingState = ref(false);
 
 // 检查游戏是否结束
 const shouldEnd = computed(() => gameStore.isGameOver || gameStore.isVictory);
+
+/**
+ * 应用状态更新（通用函数）
+ */
+function applyStateUpdate(stateResponse: NarrateStateResponse | JudgeStateResponse) {
+  // 应用状态变化
+  if (stateResponse.stat_changes) {
+    gameStore.updateStats(stateResponse.stat_changes);
+    console.log("状态变化:", stateResponse.stat_changes);
+  }
+
+  // 处理物品变化
+  if (stateResponse.item_changes) {
+    stateResponse.item_changes.remove?.forEach((item: InventoryItem) => {
+      gameStore.removeItem(item.name, item.count);
+      console.log("消耗物品:", item.name, "x", item.count);
+    });
+    stateResponse.item_changes.add?.forEach((item: InventoryItem) => {
+      gameStore.addItem(item);
+      console.log("获得物品:", item.name, "x", item.count);
+    });
+  }
+
+  // 添加隐藏标签
+  stateResponse.new_hidden_tags?.forEach((tag: string) => {
+    gameStore.addHiddenTag(tag);
+    console.log("新标签:", tag);
+  });
+
+  // 移除隐藏标签
+  stateResponse.remove_hidden_tags?.forEach((tag: string) => {
+    gameStore.removeHiddenTag(tag);
+    console.log("移除标签:", tag);
+  });
+}
 
 // 生成今日剧情（流式）
 async function generateDailyNarration() {
@@ -49,7 +82,7 @@ async function generateDailyNarration() {
   choices.value = [];
 
   try {
-    // 第一步：流式获取叙事内容
+    // 流式获取叙事内容
     let fullText = "";
     for await (const chunk of narrateStream({
       day: gameStore.day,
@@ -60,11 +93,11 @@ async function generateDailyNarration() {
       shelter: gameStore.shelter,
     })) {
       fullText += chunk;
-      // 实时过滤 <hidden> 标签，避免展示给玩家
+      // 实时过滤 <hidden> 和 <state_update> 标签，避免展示给玩家
       logText.value = filterHiddenContent(fullText);
     }
 
-    // 解析叙事内容，提取选项（同时过滤掉 <hidden> 标签）
+    // 解析叙事内容，提取选项和状态更新
     const parsed = parseNarrativeChoices(fullText);
     logText.value = parsed.logText;
     hasCrisis.value = parsed.hasCrisis;
@@ -75,47 +108,21 @@ async function generateDailyNarration() {
     // 流式输出完成
     streamDone.value = true;
 
-    // 第二步：如果无危机事件，获取状态更新
-    if (!parsed.hasCrisis) {
-      isCalculatingState.value = true;
-      
-      const stateResponse = await narrateState({
-        day: gameStore.day,
-        stats: gameStore.stats,
-        inventory: gameStore.inventory,
-        hidden_tags: gameStore.hiddenTags,
-        history: gameStore.history,
-        narrative_context: fullText,
-      });
-
-      // 应用状态变化
-      if (stateResponse.stat_changes) {
-        gameStore.updateStats(stateResponse.stat_changes);
-      }
-
-      // 处理物品变化
-      if (stateResponse.item_changes) {
-        stateResponse.item_changes.remove?.forEach((item) => {
-          gameStore.removeItem(item.name, item.count);
-        });
-        stateResponse.item_changes.add?.forEach((item) => {
-          gameStore.addItem(item);
-        });
-      }
-
-      // 添加隐藏标签
-      stateResponse.new_hidden_tags?.forEach((tag) => {
-        gameStore.addHiddenTag(tag);
-      });
-
-      // 添加历史记录
-      gameStore.addHistory(parsed.logText, "none");
-      
-      isCalculatingState.value = false;
+    // 如果无危机事件，直接从解析结果中获取状态更新
+    if (!parsed.hasCrisis && parsed.stateUpdate) {
+      applyStateUpdate(parsed.stateUpdate);
+      // 添加历史记录（无危机，不需要 player_action 和 judge_result）
+      gameStore.addHistory(parsed.logText, "none", null, null);
+    } else if (!parsed.hasCrisis && !parsed.stateUpdate) {
+      // 无危机但也没有状态更新（AI 可能没有正确输出），使用默认消耗
+      console.warn("⚠️ 无危机事件但未解析到状态更新，使用默认消耗");
+      gameStore.updateStats({ hp: 0, san: 0, hunger: -30 });
+      gameStore.addHistory(parsed.logText, "none", null, null);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "未知错误";
     console.error("剧情生成失败:", error);
-    logText.value = `API调用失败: ${error?.message || "未知错误"}`;
+    logText.value = `API调用失败: ${errorMessage}`;
     hasCrisis.value = false;
     choices.value = [];
     streamDone.value = true;
@@ -144,8 +151,8 @@ async function executeAction(action: string) {
   logText.value = "";
 
   try {
-    // 第一步：流式获取判定叙事
-    let narrativeResult = "";
+    // 流式获取判定叙事（包含状态更新）
+    let fullResult = "";
     for await (const chunk of judgeStream({
       day: gameStore.day,
       event_context: eventContext.value,
@@ -154,73 +161,51 @@ async function executeAction(action: string) {
       inventory: gameStore.inventory,
       history: gameStore.history,
     })) {
-      narrativeResult += chunk;
-      logText.value = narrativeResult;
+      fullResult += chunk;
+      // 实时过滤 <state_update> 标签，避免展示给玩家
+      logText.value = filterHiddenContent(fullResult);
     }
 
-    // 流式输出完成，开始计算状态
+    // 流式输出完成
     streamDone.value = true;
-    isCalculatingState.value = true;
 
-    // 第二步：获取状态更新
-    const stateResponse = await judgeState({
-      day: gameStore.day,
-      event_context: eventContext.value,
-      action_content: action,
-      narrative_result: narrativeResult,
-      stats: gameStore.stats,
-      inventory: gameStore.inventory,
-      hidden_tags: gameStore.hiddenTags,
-      history: gameStore.history,
-    });
+    // 从完整输出中解析叙事和状态更新
+    const { narrativeText, stateUpdate } = parseJudgeResult(fullResult);
+    logText.value = narrativeText;
 
-    // 更新状态
-    if (stateResponse.stat_changes) {
-      gameStore.updateStats(stateResponse.stat_changes);
-      console.log("状态变化:", stateResponse.stat_changes);
-    }
+    // 应用状态更新
+    if (stateUpdate) {
+      applyStateUpdate(stateUpdate);
 
-    // 处理物品变化
-    if (stateResponse.item_changes) {
-      stateResponse.item_changes.remove?.forEach((item) => {
-        gameStore.removeItem(item.name, item.count);
-        console.log("消耗物品:", item.name, "x", item.count);
-      });
-      stateResponse.item_changes.add?.forEach((item) => {
-        gameStore.addItem(item);
-        console.log("获得物品:", item.name, "x", item.count);
-      });
-    }
+      // 记录高光时刻（高分行动）
+      if (stateUpdate.score >= 90) {
+        gameStore.setHighLight(
+          `第${gameStore.day}天: ${action} - ${narrativeText}`
+        );
+      }
 
-    // 添加隐藏标签
-    stateResponse.new_hidden_tags?.forEach((tag) => {
-      gameStore.addHiddenTag(tag);
-      console.log("新标签:", tag);
-    });
-
-    // 记录高光时刻（高分行动）
-    if (stateResponse.score >= 90) {
-      gameStore.setHighLight(
-        `第${gameStore.day}天: ${action} - ${narrativeResult}`
+      // 添加历史记录（包含事件描述、玩家行动、判定结果）
+      gameStore.addHistory(
+        eventContext.value,  // Narrator 生成的今日事件
+        stateUpdate.score >= 60 ? "success" : "fail",
+        action,              // 玩家选择的行动
+        narrativeText        // Judge 的判定叙事
       );
+    } else {
+      // 未解析到状态更新，使用默认值
+      console.warn("⚠️ 未解析到 Judge 状态更新，使用默认消耗");
+      gameStore.updateStats({ hp: 0, san: -5, hunger: -30 });
+      gameStore.addHistory(eventContext.value, "none", action, narrativeText);
     }
 
     // 清除危机状态
     hasCrisis.value = false;
     choices.value = [];
-
-    // 添加历史记录
-    gameStore.addHistory(
-      narrativeResult,
-      stateResponse.score >= 60 ? "success" : "fail"
-    );
-
-    isCalculatingState.value = false;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "未知错误";
     console.error("行动判定失败:", error);
-    logText.value = "你的行动没有产生预期的效果...";
+    logText.value = `判定失败: ${errorMessage}`;
     streamDone.value = true;
-    isCalculatingState.value = false;
   } finally {
     uiStore.setLoading(false);
   }
@@ -291,37 +276,10 @@ onMounted(() => {
             <span v-if="!streamDone" class="animate-pulse">▌</span>
           </div>
           
-          <!-- 状态计算中提示 -->
-          <div
-            v-if="isCalculatingState"
-            class="mt-4 flex items-center gap-2 text-gray-400 text-sm"
-          >
-            <svg
-              class="animate-spin h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <span>正在计算状态变化...</span>
-          </div>
         </div>
 
         <!-- 选项区域 -->
-        <div v-if="streamDone && !uiStore.isLoading && !isCalculatingState" class="space-y-3">
+        <div v-if="streamDone && !uiStore.isLoading" class="space-y-3">
           <!-- 危机选项 -->
           <template v-if="hasCrisis && choices.length > 0">
             <button

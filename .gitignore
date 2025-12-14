@@ -15,6 +15,9 @@ backend/.venv
 .ruff_cache/
 .cache/
 
+# API logs
+backend/logs/
+
 # Environment files
 .env
 backend/.env

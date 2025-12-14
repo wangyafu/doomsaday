@@ -14,8 +14,10 @@ export interface InventoryItem {
 // 历史记录条目
 export interface HistoryEntry {
   day: number
-  log: string
-  event_result: string
+  log: string                    // Narrator 生成的今日事件描述
+  player_action?: string | null  // 玩家选择的行动（有危机事件时）
+  judge_result?: string | null   // Judge 的判定叙事（有危机事件时）
+  event_result: string           // 事件结果：success/fail/none
 }
 
 // 商品定义

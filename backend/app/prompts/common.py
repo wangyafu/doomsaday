@@ -86,9 +86,9 @@ STATE_CHANGE_RULES = """
 - 生病/感染：持续下降，需添加对应 tag
 
 ### Hunger（饱腹）变化触发
-- 每日基础消耗：-30（固定）
-- 吃食物：+10~+30（根据食物类型）
-- 剧烈活动（战斗、奔跑）：额外 -5~-10
+- 食物充足时，hunger保持为100.
+- 食物不足时，hunger
+- 没有时，hunger每天减30.
 
 ### SAN（理智）变化触发
 - 恐惧/压力事件：-5~-15
@@ -126,13 +126,13 @@ STATE_OUTPUT_FORMAT = """
 ### 示例输出
 
 平静的一天，吃了压缩饼干：
-{"stat_changes": {"hp": 0, "san": 5, "hunger": -20}, "item_changes": {"remove": [{"name": "压缩饼干", "count": 1}], "add": []}, "new_hidden_tags": [], "remove_hidden_tags": []}
+{"stat_changes": {"hp": 0, "san": 5, "hunger": 0}, "item_changes": {"remove": [{"name": "压缩饼干", "count": 1}], "add": []}, "new_hidden_tags": [], "remove_hidden_tags": []}
 
 被丧尸抓伤，消耗绷带包扎：
-{"stat_changes": {"hp": -10, "san": -5, "hunger": -30}, "item_changes": {"remove": [{"name": "绷带", "count": 1}], "add": []}, "new_hidden_tags": ["受伤"], "remove_hidden_tags": []}
+{"stat_changes": {"hp": -10, "san": -5, "hunger":0}, "item_changes": {"remove": [{"name": "绷带", "count": 1}], "add": []}, "new_hidden_tags": ["受伤"], "remove_hidden_tags": []}
 
 伤口痊愈，移除受伤标签：
-{"stat_changes": {"hp": 5, "san": 5, "hunger": -30}, "item_changes": {"remove": [], "add": []}, "new_hidden_tags": [], "remove_hidden_tags": ["受伤"]}
+{"stat_changes": {"hp": 5, "san": 5, "hunger": 0}, "item_changes": {"remove": [], "add": []}, "new_hidden_tags": [], "remove_hidden_tags": ["受伤"]}
 
 重要：直接输出JSON对象，不要有任何其他文字或代码块标记。
 """
@@ -195,7 +195,14 @@ def format_history(history: list[HistoryEntry], max_days: int = 5) -> str:
     for entry in recent:
         result_attr = f' result="{entry.event_result}"' if entry.event_result != "none" else ""
         lines.append(f'  <day num="{entry.day}"{result_attr}>')
-        lines.append(f"    {entry.log}")
+        # 今日事件描述
+        lines.append(f"    <narrative>{entry.log}</narrative>")
+        # 玩家行动（如果有）
+        if entry.player_action:
+            lines.append(f"    <player_action>{entry.player_action}</player_action>")
+        # 判定结果（如果有）
+        if entry.judge_result:
+            lines.append(f"    <judge_result>{entry.judge_result}</judge_result>")
         lines.append("  </day>")
     lines.append("</history>")
     

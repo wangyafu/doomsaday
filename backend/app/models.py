@@ -24,8 +24,10 @@ class InventoryItem(BaseModel):
 class HistoryEntry(BaseModel):
     """历史记录条目"""
     day: int = Field(..., description="天数")
-    log: str = Field(..., description="当天日志")
-    event_result: str = Field(default="none", description="事件结果")
+    log: str = Field(..., description="Narrator 生成的今日事件描述")
+    player_action: Optional[str] = Field(default=None, description="玩家选择的行动（有危机事件时）")
+    judge_result: Optional[str] = Field(default=None, description="Judge 的判定叙事（有危机事件时）")
+    event_result: str = Field(default="none", description="事件结果：success/fail/none")
 
 
 class Shelter(BaseModel):
@@ -121,44 +123,23 @@ class StreamEvent(BaseModel):
     error: Optional[str] = None
 
 
-# ==================== Narrate 状态更新模型 ====================
+# ==================== 状态更新模型（前端从流式输出中解析） ====================
+# 注意：这些模型不再用于独立的 API 响应，而是嵌入在流式输出的 <state_update> 标签中
+# 保留这些定义是为了文档说明和类型参考
 
-class NarrateStateRequest(BaseModel):
-    """Narrator状态更新请求（仅在无危机事件时调用）"""
-    day: int = Field(..., description="当前天数")
-    stats: Stats = Field(..., description="玩家当前状态")
-    inventory: list[InventoryItem] = Field(default_factory=list, description="背包物品列表")
-    hidden_tags: list[str] = Field(default_factory=list, description="隐藏标签")
-    history: list[HistoryEntry] = Field(default_factory=list, description="历史记录")
-    narrative_context: str = Field(..., description="刚才生成的叙事内容（本回合 /narrate/stream 的输出）")
+# Narrator 状态更新格式（无危机事件时，嵌入在叙事输出末尾）
+# {
+#   "stat_changes": {"hp": 0, "san": 5, "hunger": -30},
+#   "item_changes": {"remove": [...], "add": [...]},
+#   "new_hidden_tags": [...],
+#   "remove_hidden_tags": [...]
+# }
 
-
-class NarrateStateResponse(BaseModel):
-    """Narrator状态更新响应"""
-    stat_changes: StatChanges = Field(default_factory=StatChanges, description="状态变更")
-    item_changes: ItemChanges = Field(default_factory=ItemChanges, description="物品变更")
-    new_hidden_tags: list[str] = Field(default_factory=list, description="新增隐藏标签")
-    remove_hidden_tags: list[str] = Field(default_factory=list, description="移除隐藏标签")
-
-
-# ==================== Judge 状态更新模型 ====================
-
-class JudgeStateRequest(BaseModel):
-    """Judge状态更新请求"""
-    day: int = Field(..., description="当前天数")
-    event_context: str = Field(..., description="事件上下文（本回合 /narrate/stream 的输出）")
-    action_content: str = Field(..., description="玩家选择的行动内容")
-    narrative_result: str = Field(..., description="刚才生成的判定叙事（本回合 /judge/stream 的输出）")
-    stats: Stats = Field(..., description="玩家当前状态")
-    inventory: list[InventoryItem] = Field(default_factory=list, description="背包物品列表")
-    hidden_tags: list[str] = Field(default_factory=list, description="隐藏标签")
-    history: list[HistoryEntry] = Field(default_factory=list, description="历史记录")
-
-
-class JudgeStateResponse(BaseModel):
-    """Judge状态更新响应"""
-    score: int = Field(..., ge=0, le=100, description="行动评分 0-100")
-    stat_changes: StatChanges = Field(default_factory=StatChanges, description="状态变更")
-    item_changes: ItemChanges = Field(default_factory=ItemChanges, description="物品变更")
-    new_hidden_tags: list[str] = Field(default_factory=list, description="新增隐藏标签")
-    remove_hidden_tags: list[str] = Field(default_factory=list, description="移除隐藏标签")
+# Judge 状态更新格式（嵌入在判定输出末尾）
+# {
+#   "score": 75,
+#   "stat_changes": {"hp": -10, "san": -5, "hunger": -30},
+#   "item_changes": {"remove": [...], "add": [...]},
+#   "new_hidden_tags": [...],
+#   "remove_hidden_tags": [...]
+# }

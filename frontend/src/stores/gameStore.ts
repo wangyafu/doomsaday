@@ -105,10 +105,17 @@ export const useGameStore = defineStore('game', () => {
   }
   
   // 添加历史记录
-  function addHistory(log: string, eventResult: string = 'none') {
+  function addHistory(
+    log: string, 
+    eventResult: string = 'none',
+    playerAction?: string | null,
+    judgeResult?: string | null
+  ) {
     history.value.push({
       day: day.value,
       log,
+      player_action: playerAction ?? null,
+      judge_result: judgeResult ?? null,
       event_result: eventResult
     })
   }
