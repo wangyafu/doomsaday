@@ -55,7 +55,8 @@ class NarrateRequest(BaseModel):
 
 class JudgeRequest(BaseModel):
     """行动判定请求"""
-    event_context: str = Field(..., description="当前事件上下文")
+    day: int = Field(..., description="当前天数")
+    event_context: str = Field(..., description="当前事件上下文（本回合 /narrate/stream 的输出）")
     action_content: str = Field(..., description="玩家选择的行动内容")
     stats: Stats = Field(..., description="玩家当前状态")
     inventory: list[InventoryItem] = Field(default_factory=list, description="背包物品列表")
@@ -127,7 +128,9 @@ class NarrateStateRequest(BaseModel):
     day: int = Field(..., description="当前天数")
     stats: Stats = Field(..., description="玩家当前状态")
     inventory: list[InventoryItem] = Field(default_factory=list, description="背包物品列表")
-    narrative_context: str = Field(..., description="刚才生成的叙事内容")
+    hidden_tags: list[str] = Field(default_factory=list, description="隐藏标签")
+    history: list[HistoryEntry] = Field(default_factory=list, description="历史记录")
+    narrative_context: str = Field(..., description="刚才生成的叙事内容（本回合 /narrate/stream 的输出）")
 
 
 class NarrateStateResponse(BaseModel):
@@ -141,11 +144,14 @@ class NarrateStateResponse(BaseModel):
 
 class JudgeStateRequest(BaseModel):
     """Judge状态更新请求"""
-    event_context: str = Field(..., description="事件上下文")
+    day: int = Field(..., description="当前天数")
+    event_context: str = Field(..., description="事件上下文（本回合 /narrate/stream 的输出）")
     action_content: str = Field(..., description="玩家选择的行动内容")
-    narrative_result: str = Field(..., description="刚才生成的判定叙事")
+    narrative_result: str = Field(..., description="刚才生成的判定叙事（本回合 /judge/stream 的输出）")
     stats: Stats = Field(..., description="玩家当前状态")
     inventory: list[InventoryItem] = Field(default_factory=list, description="背包物品列表")
+    hidden_tags: list[str] = Field(default_factory=list, description="隐藏标签")
+    history: list[HistoryEntry] = Field(default_factory=list, description="历史记录")
 
 
 class JudgeStateResponse(BaseModel):

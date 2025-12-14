@@ -152,13 +152,17 @@ async def narrate_state(request: NarrateStateRequest) -> NarrateStateResponse:
         request.day: 当前天数
         request.stats: 玩家当前状态
         request.inventory: 背包物品
-        request.narrative_context: 第一步流式输出的完整叙事文本
+        request.hidden_tags: 隐藏标签
+        request.history: 完整历史记录
+        request.narrative_context: 第一步流式输出的完整叙事文本（本回合 /narrate/stream 的输出）
     
     返回：JSON格式的状态更新
     """
     logger.info("="*50)
     logger.info("[NARRATE/STATE] 请求输入:")
     logger.info(f"  天数: {request.day}")
+    logger.info(f"  历史记录条数: {len(request.history)}")
+    logger.info(f"  隐藏标签: {request.hidden_tags}")
     logger.info(f"  叙事文本长度: {len(request.narrative_context)} 字符")
     
     try:
@@ -169,6 +173,8 @@ async def narrate_state(request: NarrateStateRequest) -> NarrateStateResponse:
             day=request.day,
             stats=request.stats,
             inventory=request.inventory,
+            hidden_tags=request.hidden_tags,
+            history=request.history,
             narrative_context=request.narrative_context
         )
         
@@ -227,15 +233,18 @@ async def judge_stream(request: JudgeRequest):
     """
     logger.info("="*50)
     logger.info("[JUDGE/STREAM] 请求输入:")
+    logger.info(f"  天数: {request.day}")
     logger.info(f"  事件上下文: {request.event_context[:100]}...")
     logger.info(f"  玩家行动: {request.action_content}")
     logger.info(f"  状态: HP={request.stats.hp}, SAN={request.stats.san}, HUNGER={request.stats.hunger}")
     logger.info(f"  背包: {[f'{i.name}x{i.count}' for i in request.inventory]}")
+    logger.info(f"  历史记录条数: {len(request.history)}")
     
     llm = get_llm_service()
     
     # 构建提示词
     user_prompt = build_judge_narrative_prompt(
+        day=request.day,
         event_context=request.event_context,
         action_content=request.action_content,
         stats=request.stats,
@@ -279,16 +288,22 @@ async def judge_state(request: JudgeStateRequest) -> JudgeStateResponse:
     功能：根据判定叙事计算状态和物品变化，给出评分
     
     参数：
-        request.event_context: 事件上下文
+        request.day: 当前天数
+        request.event_context: 事件上下文（本回合 /narrate/stream 的输出）
         request.action_content: 玩家行动
-        request.narrative_result: 第一步流式输出的判定叙事
+        request.narrative_result: 第一步流式输出的判定叙事（本回合 /judge/stream 的输出）
         request.stats: 玩家当前状态
         request.inventory: 背包物品
+        request.hidden_tags: 隐藏标签
+        request.history: 完整历史记录
     
     返回：JSON格式的状态更新和评分
     """
     logger.info("="*50)
     logger.info("[JUDGE/STATE] 请求输入:")
+    logger.info(f"  天数: {request.day}")
+    logger.info(f"  历史记录条数: {len(request.history)}")
+    logger.info(f"  隐藏标签: {request.hidden_tags}")
     logger.info(f"  判定叙事长度: {len(request.narrative_result)} 字符")
     logger.info(f"  玩家行动: {request.action_content}")
     
@@ -297,11 +312,14 @@ async def judge_state(request: JudgeStateRequest) -> JudgeStateResponse:
         
         # 构建状态更新提示词
         user_prompt = build_judge_state_prompt(
+            day=request.day,
             event_context=request.event_context,
             action_content=request.action_content,
             narrative_result=request.narrative_result,
             stats=request.stats,
-            inventory=request.inventory
+            inventory=request.inventory,
+            hidden_tags=request.hidden_tags,
+            history=request.history
         )
         
         # 调用LLM（JSON模式）

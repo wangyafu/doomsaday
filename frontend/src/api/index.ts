@@ -11,6 +11,15 @@ import type {
 const API_BASE = "/api";
 
 /**
+ * 调试日志：打印 API 请求体
+ */
+function logRequest(endpoint: string, body: unknown) {
+  console.group(`🚀 [API] ${endpoint}`);
+  console.log(JSON.stringify(body, null, 2));
+  console.groupEnd();
+}
+
+/**
  * 每日剧情生成 - 流式输出叙事内容
  * 返回一个 AsyncGenerator，逐块返回文本
  */
@@ -22,6 +31,8 @@ export async function* narrateStream(params: {
   history: HistoryEntry[];
   shelter?: Shelter | null;
 }): AsyncGenerator<string, void, unknown> {
+  logRequest("POST /game/narrate/stream", params);
+  
   const response = await fetch(`${API_BASE}/game/narrate/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -68,13 +79,19 @@ export async function* narrateStream(params: {
 
 /**
  * 每日剧情生成 - 状态更新（仅在无危机事件时调用）
+ * 
+ * @param narrative_context - 本回合 /narrate/stream 的完整输出
  */
 export async function narrateState(params: {
   day: number;
   stats: Stats;
   inventory: InventoryItem[];
+  hidden_tags: string[];
+  history: HistoryEntry[];
   narrative_context: string;
 }): Promise<NarrateStateResponse> {
+  logRequest("POST /game/narrate/state", params);
+  
   const response = await fetch(`${API_BASE}/game/narrate/state`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -119,14 +136,21 @@ export function parseNarrativeChoices(text: string): {
 
 /**
  * 行动判定 - 流式输出判定叙事
+ * 
+ * @param day - 当前天数
+ * @param event_context - 本回合 /narrate/stream 的输出（今日事件描述）
+ * @param action_content - 用户选择的行动
  */
 export async function* judgeStream(params: {
+  day: number;
   event_context: string;
   action_content: string;
   stats: Stats;
   inventory: InventoryItem[];
   history: HistoryEntry[];
 }): AsyncGenerator<string, void, unknown> {
+  logRequest("POST /game/judge/stream", params);
+  
   const response = await fetch(`${API_BASE}/game/judge/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -171,14 +195,22 @@ export async function* judgeStream(params: {
 
 /**
  * 行动判定 - 状态更新
+ * 
+ * @param event_context - 本回合 /narrate/stream 的输出（危机事件描述）
+ * @param narrative_result - 本回合 /judge/stream 的输出（判定叙事）
  */
 export async function judgeState(params: {
+  day: number;
   event_context: string;
   action_content: string;
   narrative_result: string;
   stats: Stats;
   inventory: InventoryItem[];
+  hidden_tags: string[];
+  history: HistoryEntry[];
 }): Promise<JudgeStateResponse> {
+  logRequest("POST /game/judge/state", params);
+  
   const response = await fetch(`${API_BASE}/game/judge/state`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -202,6 +234,8 @@ export async function ending(params: {
   final_inventory: InventoryItem[];
   history: HistoryEntry[];
 }): Promise<EndingResponse> {
+  logRequest("POST /game/ending", params);
+  
   const response = await fetch(`${API_BASE}/game/ending`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

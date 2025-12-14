@@ -27,18 +27,22 @@ def format_inventory(inventory: list[InventoryItem]) -> str:
 def format_history(history: list[HistoryEntry], max_days: int = 5) -> str:
     """
     格式化历史记录，只取最近N天
+    使用XML标签结构化，便于AI理解
     这是关键的上下文压缩策略，避免token爆炸
     """
     if not history:
-        return "这是末世的第一天..."
+        return "<history>这是末世的第一天...</history>"
     
     # 只取最近的max_days天
     recent = history[-max_days:] if len(history) > max_days else history
     
-    lines = []
+    lines = ["<history>"]
     for entry in recent:
-        result_tag = f" [{entry.event_result}]" if entry.event_result != "none" else ""
-        lines.append(f"【第{entry.day}天】{entry.log}{result_tag}")
+        result_attr = f' result="{entry.event_result}"' if entry.event_result != "none" else ""
+        lines.append(f'<day num="{entry.day}"{result_attr}>')
+        lines.append(entry.log)
+        lines.append("</day>")
+    lines.append("</history>")
     
     return "\n".join(lines)
 
@@ -170,17 +174,25 @@ def build_narrator_state_prompt(
     day: int,
     stats: Stats,
     inventory: list[InventoryItem],
+    hidden_tags: list[str],
+    history: list[HistoryEntry],
     narrative_context: str
 ) -> str:
     """
     构建Narrator状态更新的用户提示词
     注意：此函数仅在无危机事件时调用，有危机时状态更新在Judge之后
+    
+    参数：
+        narrative_context: 本回合 /narrate/stream 的完整输出
     """
     return f"""## 状态更新计算
 
 **第 {day} 天**
 
-### 今日叙事内容
+### 最近几天的经历
+{format_history(history)}
+
+### 今日叙事内容（本回合生成）
 {narrative_context}
 
 ### 玩家当前状态
@@ -188,6 +200,9 @@ def build_narrator_state_prompt(
 
 ### 玩家背包
 {format_inventory(inventory)}
+
+### 隐藏标签（影响剧情，玩家不可见）
+{format_hidden_tags(hidden_tags)}
 
 ---
 请根据今日叙事内容，计算状态和物品变化。"""
@@ -251,20 +266,37 @@ JUDGE_STATE_SYSTEM_PROMPT = """你是一个游戏状态计算器。
 
 
 def build_judge_narrative_prompt(
+    day: int,
     event_context: str,
     action_content: str,
     stats: Stats,
     inventory: list[InventoryItem],
     history: list[HistoryEntry]
 ) -> str:
-    """构建Judge叙事阶段的用户提示词"""
+    """
+    构建Judge叙事阶段的用户提示词
+    
+    参数：
+        day: 当前天数
+        event_context: 本回合 /narrate/stream 生成的今日日志（危机事件描述）
+        action_content: 用户选择的行动（A/B/C/D选项或自由输入）
+    """
     return f"""## 当前情境
 
-### 事件描述
+**第 {day} 天**
+
+### 近期经历（往日回顾）
+{format_history(history, max_days=3)}
+
+### 今日事件（本回合 narrate 生成的日志）
+<today_event day="{day}">
 {event_context}
+</today_event>
 
 ### 玩家选择的行动
+<player_action>
 {action_content}
+</player_action>
 
 ### 玩家当前状态
 {format_stats(stats)}
@@ -272,31 +304,42 @@ def build_judge_narrative_prompt(
 ### 玩家背包（判定时参考）
 {format_inventory(inventory)}
 
-### 近期经历（供参考）
-{format_history(history, max_days=3)}
-
 ---
 请判定玩家行动的结果，生成叙事描述。
 注意：如果玩家想用某物品但背包里没有，判定失败。"""
 
 
 def build_judge_state_prompt(
+    day: int,
     event_context: str,
     action_content: str,
     narrative_result: str,
     stats: Stats,
-    inventory: list[InventoryItem]
+    inventory: list[InventoryItem],
+    hidden_tags: list[str],
+    history: list[HistoryEntry]
 ) -> str:
-    """构建Judge状态更新的用户提示词"""
+    """
+    构建Judge状态更新的用户提示词
+    
+    参数：
+        event_context: 本回合 /narrate/stream 的输出（危机事件描述）
+        narrative_result: 本回合 /judge/stream 的输出（判定叙事）
+    """
     return f"""## 状态更新计算
 
-### 事件描述
+**第 {day} 天**
+
+### 最近几天的经历
+{format_history(history)}
+
+### 今日事件描述（本回合 narrate 生成）
 {event_context}
 
 ### 玩家选择的行动
 {action_content}
 
-### 判定叙事结果
+### 判定叙事结果（本回合 judge 生成）
 {narrative_result}
 
 ### 玩家当前状态
@@ -304,6 +347,9 @@ def build_judge_state_prompt(
 
 ### 玩家背包
 {format_inventory(inventory)}
+
+### 隐藏标签（影响剧情，玩家不可见）
+{format_hidden_tags(hidden_tags)}
 
 ---
 请根据判定结果，计算状态和物品变化，并给出评分。

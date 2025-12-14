@@ -80,6 +80,8 @@ async function generateDailyNarration() {
         day: gameStore.day,
         stats: gameStore.stats,
         inventory: gameStore.inventory,
+        hidden_tags: gameStore.hiddenTags,
+        history: gameStore.history,
         narrative_context: fullText,
       });
 
@@ -142,6 +144,7 @@ async function executeAction(action: string) {
     // 第一步：流式获取判定叙事
     let narrativeResult = "";
     for await (const chunk of judgeStream({
+      day: gameStore.day,
       event_context: eventContext.value,
       action_content: action,
       stats: gameStore.stats,
@@ -158,11 +161,14 @@ async function executeAction(action: string) {
 
     // 第二步：获取状态更新
     const stateResponse = await judgeState({
+      day: gameStore.day,
       event_context: eventContext.value,
       action_content: action,
       narrative_result: narrativeResult,
       stats: gameStore.stats,
       inventory: gameStore.inventory,
+      hidden_tags: gameStore.hiddenTags,
+      history: gameStore.history,
     });
 
     // 更新状态
