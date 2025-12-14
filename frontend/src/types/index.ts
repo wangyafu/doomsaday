@@ -54,6 +54,7 @@ export interface NarrateStateResponse {
     add: InventoryItem[]
   }
   new_hidden_tags: string[]
+  remove_hidden_tags: string[]
 }
 
 // Judge 状态更新响应
@@ -69,6 +70,7 @@ export interface JudgeStateResponse {
     add: InventoryItem[]
   }
   new_hidden_tags: string[]
+  remove_hidden_tags: string[]
 }
 
 export interface EndingResponse {

@@ -10,6 +10,8 @@ from app.models import Stats, InventoryItem, HistoryEntry
 from app.prompts.common import (
     GAME_WORLD_CONTEXT,
     GAME_MECHANICS_CONTEXT,
+    STATE_CHANGE_RULES,
+    STATE_OUTPUT_FORMAT,
     format_stats,
     format_inventory_detailed,
     format_history,
@@ -34,7 +36,7 @@ JUDGE_NARRATIVE_SYSTEM_PROMPT = f"""
 ## 你的人格特质
 
 ### 判定风格
-- 公正但严苛：不会因为玩家"想要"成功就让他成功
+- 公正但严苛：不会因为玩家"想要"成功就让他成功，在玩家做出鲁莽决策（如：赤手空拳与丧尸群搏斗）可以判定玩家死亡。
 - 逻辑严密：判定必须基于物品、数值和情境的合理性
 - 意外但合理：喜欢给出玩家意想不到但细想又合理的结果
 - 奖励创意：对聪明的、有创意的行动给予额外奖励
@@ -45,11 +47,7 @@ JUDGE_NARRATIVE_SYSTEM_PROMPT = f"""
 3. 连锁反应：行动可能引发意想不到的后果
 4. 世界一致性：判定结果要符合末世设定
 
-### 成功率参考（可根据情境调整）
-- 有合适物品 + 合理策略：70-90% 成功
-- 有物品但策略冒险：40-60% 成功
-- 无物品但有创意：20-40% 成功（可能部分成功）
-- 无物品且鲁莽：10-20% 成功（大概率受伤）
+
 </persona>
 
 <task>
@@ -104,14 +102,14 @@ JUDGE_NARRATIVE_SYSTEM_PROMPT = f"""
 
 # ==================== 状态更新提示词 ====================
 
-JUDGE_STATE_SYSTEM_PROMPT = """你是游戏状态计算引擎，负责将判定结果转化为精确的数值变化和评分。你不生成叙事，只做数学计算和逻辑判断。
+JUDGE_STATE_SYSTEM_PROMPT = f"""你是游戏状态计算引擎，负责将判定结果转化为精确的数值变化和评分。你不生成叙事，只做数学计算和逻辑判断。
 
 ## 任务
 根据刚才的判定叙事，计算：
 1. 玩家状态变化（HP/Hunger/SAN）
 2. 物品变化（消耗/获得）
 3. 行动评分（0-100）
-4. 新增的隐藏标签
+4. 隐藏标签变更（新增/移除）
 
 ## 评分标准
 - 90-100：神级操作，创意满分且完美执行
@@ -120,29 +118,29 @@ JUDGE_STATE_SYSTEM_PROMPT = """你是游戏状态计算引擎，负责将判定�
 - 30-49：勉强过关，付出较大代价
 - 0-29：糟糕决策，严重后果
 
-## 状态变化参考
-- 轻伤：hp -5 ~ -15
-- 重伤：hp -20 ~ -40
-- 恐惧/惊吓：san -5 ~ -15
-- 创伤性事件：san -20 ~ -30
-- 成就感/安全感：san +5 ~ +15
-- 基础饥饿消耗：hunger -10（每天固定）
+{STATE_CHANGE_RULES}
 
 ## 输出格式
 必须返回JSON对象，包含以下字段：
 - score: 行动评分 0-100
 - stat_changes: 对象，包含 hp、san、hunger 三个数值
 - item_changes: 对象，包含 remove 和 add 两个数组
-- new_hidden_tags: 字符串数组
+- new_hidden_tags: 字符串数组（新增的标签）
+- remove_hidden_tags: 字符串数组（需要移除的标签，必须与现有标签完全匹配）
 
-示例输出（成功击杀丧尸）：
-{"score": 78, "stat_changes": {"hp": 0, "san": -5, "hunger": -10}, "item_changes": {"remove": [], "add": []}, "new_hidden_tags": ["first_kill"]}
+### 示例输出
 
-示例输出（失败行动导致受伤）：
-{"score": 25, "stat_changes": {"hp": -20, "san": -10, "hunger": -10}, "item_changes": {"remove": [], "add": []}, "new_hidden_tags": ["injured"]}
+成功击杀丧尸：
+{{"score": 78, "stat_changes": {{"hp": 0, "san": -5, "hunger": -40}}, "item_changes": {{"remove": [], "add": []}}, "new_hidden_tags": ["首杀"], "remove_hidden_tags": []}}
 
-示例输出（创意行动消耗物品）：
-{"score": 65, "stat_changes": {"hp": 0, "san": 0, "hunger": -10}, "item_changes": {"remove": [{"name": "老干妈", "count": 1}], "add": []}, "new_hidden_tags": []}
+失败行动导致受伤：
+{{"score": 25, "stat_changes": {{"hp": -20, "san": -10, "hunger": -30}}, "item_changes": {{"remove": [], "add": []}}, "new_hidden_tags": ["受伤"], "remove_hidden_tags": []}}
+
+使用药品治愈伤口：
+{{"score": 65, "stat_changes": {{"hp": 20, "san": 5, "hunger": -30}}, "item_changes": {{"remove": [{{"name": "急救包", "count": 1}}], "add": []}}, "new_hidden_tags": [], "remove_hidden_tags": ["受伤"]}}
+
+威胁解除，恢复安全：
+{{"score": 70, "stat_changes": {{"hp": 0, "san": 10, "hunger": -30}}, "item_changes": {{"remove": [], "add": []}}, "new_hidden_tags": [], "remove_hidden_tags": ["被跟踪"]}}
 
 重要：直接输出JSON对象，不要有任何其他文字或代码块标记。"""
 
@@ -170,7 +168,7 @@ def build_judge_narrative_prompt(
 ## 判定情境 - 末世爆发后第 {day} 天
 
 ### 近期经历（背景参考）
-{format_history(history, max_days=3)}
+{format_history(history, max_days=5)}
 
 ### 今日事件（玩家面对的危机）
 <crisis>
@@ -185,7 +183,7 @@ def build_judge_narrative_prompt(
 ### 玩家当前状态
 {format_stats(stats)}
 
-### 玩家背包（判定的关键依据！）
+### 玩家背包
 {format_inventory_detailed(inventory)}
 </context>
 
@@ -254,12 +252,15 @@ def build_judge_state_prompt(
 1. 行动评分（0-100）：这个决策有多明智？
 2. 状态变化：HP/SAN/Hunger 各变化多少？
 3. 物品变化：消耗了什么？获得了什么？
-4. 新标签：是否有新的持续状态？
+4. 标签变更：
+   - new_hidden_tags：是否有新的持续状态需要添加？
+   - remove_hidden_tags：是否有已存在的标签需要移除？（如伤口痊愈、威胁解除等）
 
 注意：
 - 消耗品使用后必须扣除
 - 工具类物品（武器等）通常不消耗
 - 当玩家缺乏食物时，每天hunger-30
+- 移除标签时必须使用与现有标签完全相同的字符串
 - 返回纯JSON，不要有其他内容
 </instruction>
 """

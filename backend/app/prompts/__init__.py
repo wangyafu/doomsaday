@@ -16,8 +16,7 @@ from app.prompts.common import (
     format_inventory,
     format_inventory_detailed,
     format_history,
-    format_hidden_tags,
-    get_day_phase,
+    format_hidden_tags
 )
 
 from app.prompts.narrator import (
@@ -49,7 +48,6 @@ __all__ = [
     "format_inventory_detailed",
     "format_history",
     "format_hidden_tags",
-    "get_day_phase",
     # Narrator
     "NARRATOR_NARRATIVE_SYSTEM_PROMPT",
     "NARRATOR_STATE_SYSTEM_PROMPT",

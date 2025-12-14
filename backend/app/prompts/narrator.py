@@ -11,12 +11,13 @@ from app.models import Stats, InventoryItem, HistoryEntry, Shelter
 from app.prompts.common import (
     GAME_WORLD_CONTEXT,
     GAME_MECHANICS_CONTEXT,
+    STATE_CHANGE_RULES,
+    STATE_OUTPUT_FORMAT,
     format_stats,
     format_inventory,
     format_inventory_detailed,
     format_history,
-    format_hidden_tags,
-    get_day_phase,
+    format_hidden_tags
 )
 
 
@@ -126,46 +127,15 @@ D. 选项4描述
 
 # ==================== 状态更新提示词 ====================
 
-NARRATOR_STATE_SYSTEM_PROMPT = """你是游戏状态计算引擎，负责将叙事内容转化为精确的数值变化。你不生成叙事，只做数学计算和逻辑判断。
+NARRATOR_STATE_SYSTEM_PROMPT = f"""你是游戏状态计算引擎，负责将叙事内容转化为精确的数值变化。你不生成叙事，只做数学计算和逻辑判断。
 
 ## 任务
 根据今天的叙事内容，计算玩家状态和物品的变化。
+注意：此时没有危机事件，只需计算日常消耗和叙事中提到的变化。
 
-## 计算规则
+{STATE_CHANGE_RULES}
 
-基础消耗（每天必定发生）：
-- hunger: -10（基础饥饿消耗）
-- 如果叙事中提到吃东西，hunger 可以回复
-
-状态变化触发条件：
-- 受伤/被攻击 → hp 下降（轻伤-5~-15，重伤-20~-40）
-- 吃食物 → hunger 上升（根据食物类型+10~+30）
-- 恐惧/压力事件 → san 下降（-5~-15）
-- 娱乐/宠物互动 → san 上升（+5~+15）
-- 生病/感染 → hp 持续下降，添加对应tag
-
-物品变化规则：
-- 消耗品使用后必须在 remove 中扣除
-- 获得新物品放在 add 中
-- 如果叙事没提到物品使用，remove 和 add 为空数组
-
-隐藏标签(hidden_tags)用途：
-- 记录持续状态：injured（受伤）、infected（感染）、sick（生病）
-- 记录剧情标记：met_survivor（遇到幸存者）、found_radio（发现电台）
-
-## 输出格式
-必须返回JSON对象，包含以下字段：
-- stat_changes: 对象，包含 hp、san、hunger 三个数值（可正可负可为0）
-- item_changes: 对象，包含 remove 和 add 两个数组
-- new_hidden_tags: 字符串数组
-
-示例输出（平静的一天，吃了压缩饼干）：
-{"stat_changes": {"hp": 0, "san": 5, "hunger": 10}, "item_changes": {"remove": [{"name": "压缩饼干", "count": 1}], "add": []}, "new_hidden_tags": []}
-
-示例输出（被丧尸抓伤，消耗绷带包扎）：
-{"stat_changes": {"hp": -10, "san": -5, "hunger": -10}, "item_changes": {"remove": [{"name": "绷带", "count": 1}], "add": []}, "new_hidden_tags": ["injured"]}
-
-重要：直接输出JSON对象，不要有任何其他文字或代码块标记。"""
+{STATE_OUTPUT_FORMAT}"""
 
 
 # ==================== 提示词构建函数 ====================
@@ -276,11 +246,14 @@ def build_narrator_state_prompt(
 3. 玩家经历了什么情绪事件？→ 影响 san
 4. 玩家使用了什么物品？→ 需要从背包扣除
 5. 玩家获得了什么物品？→ 需要添加到背包
-6. 是否有新的持续状态？→ 添加 hidden_tag
+6. 标签变更：
+   - new_hidden_tags：是否有新的持续状态需要添加？
+   - remove_hidden_tags：是否有已存在的标签需要移除？（如伤口痊愈、威胁解除等）
 
 注意：
 - 每天基础 hunger -30（饥饿消耗）
 - 只有叙事中明确提到的物品使用才需要扣除
+- 移除标签时必须使用与现有标签完全相同的字符串
 - 返回纯JSON，不要有其他内容
 </instruction>
 """

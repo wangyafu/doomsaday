@@ -119,21 +119,21 @@ export const useGameStore = defineStore('game', () => {
       hiddenTags.value.push(tag)
     }
   }
-  
-  // 进入下一天
-  function nextDay() {
-    day.value++
-    // 每日消耗饥饿度
-    updateStats({ hunger: -10 })
-    // 饥饿度为0时扣血
-    if (stats.value.hunger <= 0) {
-      updateStats({ hp: -10 })
+
+  // 移除隐藏标签
+  function removeHiddenTag(tag: string) {
+    const index = hiddenTags.value.indexOf(tag)
+    if (index !== -1) {
+      hiddenTags.value.splice(index, 1)
     }
   }
   
   // 设置高光时刻
   function setHighLight(moment: string) {
     highLightMoment.value = moment
+  }
+  function nextDay(){
+    day.value++
   }
   
   return {
@@ -151,6 +151,7 @@ export const useGameStore = defineStore('game', () => {
     highLightMoment,
     isGameOver,
     isVictory,
+    nextDay,
     // 方法
     resetGame,
     selectShelter,
@@ -159,7 +160,7 @@ export const useGameStore = defineStore('game', () => {
     updateStats,
     addHistory,
     addHiddenTag,
-    nextDay,
+    removeHiddenTag,
     setHighLight
   }
 }, {

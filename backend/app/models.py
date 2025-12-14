@@ -138,6 +138,7 @@ class NarrateStateResponse(BaseModel):
     stat_changes: StatChanges = Field(default_factory=StatChanges, description="状态变更")
     item_changes: ItemChanges = Field(default_factory=ItemChanges, description="物品变更")
     new_hidden_tags: list[str] = Field(default_factory=list, description="新增隐藏标签")
+    remove_hidden_tags: list[str] = Field(default_factory=list, description="移除隐藏标签")
 
 
 # ==================== Judge 状态更新模型 ====================
@@ -160,3 +161,4 @@ class JudgeStateResponse(BaseModel):
     stat_changes: StatChanges = Field(default_factory=StatChanges, description="状态变更")
     item_changes: ItemChanges = Field(default_factory=ItemChanges, description="物品变更")
     new_hidden_tags: list[str] = Field(default_factory=list, description="新增隐藏标签")
+    remove_hidden_tags: list[str] = Field(default_factory=list, description="移除隐藏标签")

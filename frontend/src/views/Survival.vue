@@ -228,7 +228,7 @@ async function executeAction(action: string) {
 
 // 进入下一天
 function goNextDay() {
-  gameStore.nextDay();
+    gameStore.nextDay();
 
   // 检查是否结束
   if (shouldEnd.value) {

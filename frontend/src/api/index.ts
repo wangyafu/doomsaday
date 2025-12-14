@@ -152,12 +152,15 @@ export function parseNarrativeChoices(text: string): {
     const logText = parts[0].trim();
     const optionsText = parts[1]?.trim() || "";
 
-    // 解析选项 A. B. C. D.
+    // 解析选项 A. B. C. D.（按行分割，更可靠）
     const choices: string[] = [];
-    const pattern = /([A-D])\.\s*(.+?)(?=(?:[A-D]\.|$))/gs;
-    let match;
-    while ((match = pattern.exec(optionsText)) !== null) {
-      choices.push(`${match[1]}. ${match[2].trim()}`);
+    const lines = optionsText.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // 匹配 "A." "B." "C." "D." 开头的行
+      if (/^[A-D]\.\s*.+/.test(trimmed)) {
+        choices.push(trimmed);
+      }
     }
 
     if (choices.length >= 4) {
