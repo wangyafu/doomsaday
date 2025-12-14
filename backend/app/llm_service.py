@@ -73,6 +73,9 @@ class LLMService:
             
         Returns:
             解析后的JSON字典
+            
+        Raises:
+            ValueError: 当LLM返回空内容或无效JSON时
         """
         client = self._get_client()
         response = await client.chat.completions.create(
@@ -85,8 +88,69 @@ class LLMService:
             response_format={"type": "json_object"}
         )
         
+        # 检查响应是否有效
+        if not response.choices:
+            raise ValueError("LLM返回了空的choices列表")
+        
         content = response.choices[0].message.content
-        return json.loads(content)
+        
+        # 检查内容是否为空
+        if not content or not content.strip():
+            # 检查是否被内容审核拒绝
+            finish_reason = response.choices[0].finish_reason
+            if finish_reason == "content_filter":
+                raise ValueError("内容被安全过滤器拒绝，请调整提示词")
+            raise ValueError(f"LLM返回了空内容，finish_reason: {finish_reason}")
+        
+        # 清理并解析JSON
+        try:
+            return self._parse_json_content(content)
+        except json.JSONDecodeError as e:
+            # 记录原始内容便于调试
+            raise ValueError(f"JSON解析失败: {e}\n原始内容: {content[:500]}")
+    
+    def _parse_json_content(self, content: str) -> dict:
+        """
+        清理并解析JSON内容
+        处理常见的LLM输出问题：前导逗号、代码块标记等
+        """
+        text = content.strip()
+        
+        # 移除可能的 markdown 代码块标记
+        if text.startswith("```json"):
+            text = text[7:]
+        if text.startswith("```"):
+            text = text[3:]
+        if text.endswith("```"):
+            text = text[:-3]
+        text = text.strip()
+        
+        # 移除前导逗号（某些模型的常见问题）
+        if text.startswith(","):
+            text = text[1:].strip()
+        
+        # 尝试找到JSON对象的起始位置
+        start_idx = text.find("{")
+        if start_idx > 0:
+            text = text[start_idx:]
+        
+        # 尝试找到JSON对象的结束位置（处理尾部多余内容）
+        # 使用简单的括号匹配
+        brace_count = 0
+        end_idx = -1
+        for i, char in enumerate(text):
+            if char == "{":
+                brace_count += 1
+            elif char == "}":
+                brace_count -= 1
+                if brace_count == 0:
+                    end_idx = i + 1
+                    break
+        
+        if end_idx > 0:
+            text = text[:end_idx]
+        
+        return json.loads(text)
     
     # 保留旧方法名作为别名，兼容现有代码
     async def chat(

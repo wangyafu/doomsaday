@@ -106,13 +106,47 @@ export async function narrateState(params: {
 }
 
 /**
+ * 实时过滤 <hidden> 标签内容（用于流式输出时）
+ * 处理不完整的标签：如果检测到 <hidden> 开始但未闭合，截断该部分
+ */
+export function filterHiddenContent(text: string): string {
+  // 移除完整的 <hidden>...</hidden> 标签
+  let filtered = text.replace(/<hidden>[\s\S]*?<\/hidden>/gi, "");
+  
+  // 处理未闭合的 <hidden> 标签（流式输出中可能出现）
+  const hiddenStart = filtered.indexOf("<hidden>");
+  if (hiddenStart !== -1) {
+    // 截断从 <hidden> 开始的部分
+    filtered = filtered.substring(0, hiddenStart);
+  }
+  
+  // 处理可能的部分标签（如 "<hid" 或 "<hidden"）
+  const partialMatch = filtered.match(/<h(?:i(?:d(?:d(?:e(?:n)?)?)?)?)?$/i);
+  if (partialMatch) {
+    filtered = filtered.substring(0, filtered.length - partialMatch[0].length);
+  }
+  
+  return filtered;
+}
+
+/**
  * 从叙事文本中解析危机事件和选项
+ * 同时过滤掉 <hidden>...</hidden> 标签（仅供后端 Judge 参考，不展示给玩家）
  */
 export function parseNarrativeChoices(text: string): {
   logText: string;
   hasCrisis: boolean;
   choices: string[] | null;
+  hiddenInfo: string | null;
 } {
+  // 提取并移除 <hidden> 标签内容
+  let hiddenInfo: string | null = null;
+  const hiddenMatch = text.match(/<hidden>([\s\S]*?)<\/hidden>/i);
+  if (hiddenMatch) {
+    hiddenInfo = hiddenMatch[1].trim();
+    text = text.replace(/<hidden>[\s\S]*?<\/hidden>/gi, "").trim();
+  }
+
   if (text.includes("---")) {
     const parts = text.split("---");
     const logText = parts[0].trim();
@@ -127,11 +161,11 @@ export function parseNarrativeChoices(text: string): {
     }
 
     if (choices.length >= 4) {
-      return { logText, hasCrisis: true, choices: choices.slice(0, 4) };
+      return { logText, hasCrisis: true, choices: choices.slice(0, 4), hiddenInfo };
     }
   }
 
-  return { logText: text.trim(), hasCrisis: false, choices: null };
+  return { logText: text.trim(), hasCrisis: false, choices: null, hiddenInfo };
 }
 
 /**

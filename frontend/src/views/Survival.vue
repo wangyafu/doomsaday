@@ -9,6 +9,7 @@ import {
   judgeStream,
   judgeState,
   parseNarrativeChoices,
+  filterHiddenContent,
 } from "@/api";
 import StatBar from "@/components/Game/StatBar.vue";
 import InventoryGrid from "@/components/Game/InventoryGrid.vue";
@@ -59,15 +60,17 @@ async function generateDailyNarration() {
       shelter: gameStore.shelter,
     })) {
       fullText += chunk;
-      logText.value = fullText;
+      // 实时过滤 <hidden> 标签，避免展示给玩家
+      logText.value = filterHiddenContent(fullText);
     }
 
-    // 解析叙事内容，提取选项
+    // 解析叙事内容，提取选项（同时过滤掉 <hidden> 标签）
     const parsed = parseNarrativeChoices(fullText);
     logText.value = parsed.logText;
     hasCrisis.value = parsed.hasCrisis;
     choices.value = parsed.choices || [];
-    eventContext.value = parsed.logText;
+    // 保留完整上下文（包含 hidden 信息）供 Judge 参考
+    eventContext.value = fullText;
 
     // 流式输出完成
     streamDone.value = true;
@@ -247,16 +250,16 @@ onMounted(() => {
     <div
       class="sticky top-0 z-40 bg-black/90 backdrop-blur p-4 border-b border-gray-800"
     >
-      <div class="max-w-2xl mx-auto">
+      <div class="max-w-5xl mx-auto">
         <!-- 天数 -->
-        <div class="text-center mb-3">
+        <div class="text-center mb-3 lg:mb-0">
           <span class="text-2xl font-bold text-red-500"
             >第 {{ gameStore.day }} 天</span
           >
         </div>
 
-        <!-- 状态条 -->
-        <div class="grid grid-cols-3 gap-3">
+        <!-- 状态条：仅移动端显示 -->
+        <div class="lg:hidden grid grid-cols-3 gap-3 max-w-2xl mx-auto">
           <StatBar label="生命" :value="gameStore.stats.hp" icon="❤️" />
           <StatBar label="饱腹" :value="gameStore.stats.hunger" icon="🍔" />
           <StatBar label="理智" :value="gameStore.stats.san" icon="🧠" />
@@ -265,100 +268,123 @@ onMounted(() => {
     </div>
 
     <!-- 主内容区 -->
-    <div class="flex-1 p-4 max-w-2xl mx-auto w-full">
-      <!-- 日志区域 -->
-      <div class="bg-gray-800/50 rounded-lg p-4 mb-4 min-h-[200px]">
-        <!-- 日志文本（流式显示） -->
-        <div class="whitespace-pre-wrap leading-relaxed">
-          {{ logText }}
-          <span v-if="!streamDone" class="animate-pulse">▌</span>
-        </div>
-        
-        <!-- 状态计算中提示 -->
-        <div
-          v-if="isCalculatingState"
-          class="mt-4 flex items-center gap-2 text-gray-400 text-sm"
-        >
-          <svg
-            class="animate-spin h-4 w-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          <span>正在计算状态变化...</span>
+    <div class="flex-1 p-4 w-full relative">
+      <!-- 左侧：桌面端状态面板（绝对定位） -->
+      <div class="hidden lg:block absolute left-4 top-0 w-56">
+        <div class="sticky top-24 bg-gray-800/50 rounded-lg p-4">
+          <h3 class="text-lg font-bold mb-4">📊 状态</h3>
+          <div class="space-y-4">
+            <StatBar label="生命" :value="gameStore.stats.hp" icon="❤️" />
+            <StatBar label="饱腹" :value="gameStore.stats.hunger" icon="🍔" />
+            <StatBar label="理智" :value="gameStore.stats.san" icon="🧠" />
+          </div>
         </div>
       </div>
 
-      <!-- 选项区域 -->
-      <div v-if="streamDone && !uiStore.isLoading && !isCalculatingState" class="space-y-3">
-        <!-- 危机选项 -->
-        <template v-if="hasCrisis && choices.length > 0">
-          <button
-            v-for="(choice, index) in choices"
-            :key="index"
-            class="w-full p-3 bg-gray-800 rounded-lg text-left hover:bg-gray-700 transition-all active:scale-98 border border-gray-700 hover:border-red-500"
-            @click="selectChoice(choice)"
-          >
-            {{ choice }}
-          </button>
-
-          <!-- 自定义输入选项 -->
-          <button
-            class="w-full p-3 bg-gray-800/50 rounded-lg text-left hover:bg-gray-700 transition-all border border-dashed border-gray-600"
-            @click="showCustomInput = !showCustomInput"
-          >
-            E. 自由输入...
-          </button>
-
-          <!-- 自定义输入框 -->
-          <div v-if="showCustomInput" class="flex gap-2">
-            <input
-              v-model="customAction"
-              type="text"
-              placeholder="输入你想做的事..."
-              class="flex-1 p-3 bg-gray-800 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none"
-              @keyup.enter="submitCustomAction"
-            />
-            <button
-              class="px-4 bg-red-600 rounded-lg hover:bg-red-500 transition"
-              @click="submitCustomAction"
-            >
-              确定
-            </button>
+      <!-- 中央：剧情和选项（始终居中） -->
+      <div class="max-w-2xl mx-auto">
+        <!-- 日志区域 -->
+        <div class="bg-gray-800/50 rounded-lg p-4 mb-4 min-h-[200px]">
+          <!-- 日志文本（流式显示） -->
+          <div class="whitespace-pre-wrap leading-relaxed">
+            {{ logText }}
+            <span v-if="!streamDone" class="animate-pulse">▌</span>
           </div>
-        </template>
-
-        <!-- 无危机，进入下一天 -->
-        <template v-else>
-          <button
-            class="w-full p-4 bg-red-600 rounded-lg font-bold text-lg hover:bg-red-500 transition-all active:scale-98"
-            @click="goNextDay"
+          
+          <!-- 状态计算中提示 -->
+          <div
+            v-if="isCalculatingState"
+            class="mt-4 flex items-center gap-2 text-gray-400 text-sm"
           >
-            进入下一天 →
-          </button>
-        </template>
+            <svg
+              class="animate-spin h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            <span>正在计算状态变化...</span>
+          </div>
+        </div>
+
+        <!-- 选项区域 -->
+        <div v-if="streamDone && !uiStore.isLoading && !isCalculatingState" class="space-y-3">
+          <!-- 危机选项 -->
+          <template v-if="hasCrisis && choices.length > 0">
+            <button
+              v-for="(choice, index) in choices"
+              :key="index"
+              class="w-full p-3 bg-gray-800 rounded-lg text-left hover:bg-gray-700 transition-all active:scale-98 border border-gray-700 hover:border-red-500"
+              @click="selectChoice(choice)"
+            >
+              {{ choice }}
+            </button>
+
+            <!-- 自定义输入选项 -->
+            <button
+              class="w-full p-3 bg-gray-800/50 rounded-lg text-left hover:bg-gray-700 transition-all border border-dashed border-gray-600"
+              @click="showCustomInput = !showCustomInput"
+            >
+              E. 自由输入...
+            </button>
+
+            <!-- 自定义输入框 -->
+            <div v-if="showCustomInput" class="flex gap-2">
+              <input
+                v-model="customAction"
+                type="text"
+                placeholder="输入你想做的事..."
+                class="flex-1 p-3 bg-gray-800 rounded-lg border border-gray-600 focus:border-red-500 focus:outline-none"
+                @keyup.enter="submitCustomAction"
+              />
+              <button
+                class="px-4 bg-red-600 rounded-lg hover:bg-red-500 transition"
+                @click="submitCustomAction"
+              >
+                确定
+              </button>
+            </div>
+          </template>
+
+          <!-- 无危机，进入下一天 -->
+          <template v-else>
+            <button
+              class="w-full p-4 bg-red-600 rounded-lg font-bold text-lg hover:bg-red-500 transition-all active:scale-98"
+              @click="goNextDay"
+            >
+              进入下一天 →
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <!-- 右侧：桌面端常驻背包（绝对定位） -->
+      <div class="hidden lg:block absolute right-4 top-0 w-72">
+        <div class="sticky top-32 bg-gray-800/50 rounded-lg p-4">
+          <h3 class="text-lg font-bold mb-4">🎒 背包</h3>
+          <InventoryGrid :items="gameStore.inventory" />
+        </div>
       </div>
     </div>
 
-    <!-- 底部工具栏 -->
+    <!-- 底部工具栏：仅移动端显示 -->
     <div
-      class="sticky bottom-0 bg-black/90 backdrop-blur border-t border-gray-800 p-3 safe-area-bottom"
+      class="lg:hidden sticky bottom-0 bg-black/90 backdrop-blur border-t border-gray-800 p-3 safe-area-bottom"
     >
-      <div class="max-w-2xl mx-auto flex justify-around">
+      <div class="max-w-2xl mx-auto flex justify-center">
         <button
           class="flex flex-col items-center text-gray-400 hover:text-white transition"
           @click="showInventory = !showInventory"
@@ -366,26 +392,14 @@ onMounted(() => {
           <span class="text-xl">🎒</span>
           <span class="text-xs">背包</span>
         </button>
-        <button
-          class="flex flex-col items-center text-gray-400 hover:text-white transition"
-        >
-          <span class="text-xl">📜</span>
-          <span class="text-xs">日志</span>
-        </button>
-        <button
-          class="flex flex-col items-center text-gray-400 hover:text-white transition"
-        >
-          <span class="text-xl">⚙️</span>
-          <span class="text-xs">设置</span>
-        </button>
       </div>
     </div>
 
-    <!-- 背包弹窗 -->
+    <!-- 背包弹窗：仅移动端使用 -->
     <Teleport to="body">
       <div
         v-if="showInventory"
-        class="fixed inset-0 bg-black/80 z-50 flex items-end justify-center"
+        class="lg:hidden fixed inset-0 bg-black/80 z-50 flex items-end justify-center"
         @click.self="showInventory = false"
       >
         <div
