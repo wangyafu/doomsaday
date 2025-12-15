@@ -243,10 +243,24 @@ onMounted(() => {
           >
         </div>
 
-        <!-- 状态条：仅移动端显示 -->
-        <div class="lg:hidden grid grid-cols-2 gap-3 max-w-2xl mx-auto">
-          <StatBar label="生命" :value="gameStore.stats.hp" icon="❤️" />
-          <StatBar label="理智" :value="gameStore.stats.san" icon="🧠" />
+        <!-- 移动端：状态条 + 背包按钮 -->
+        <div class="lg:hidden">
+          <!-- 状态条 -->
+          <div class="grid grid-cols-2 gap-3 max-w-2xl mx-auto mb-3">
+            <StatBar label="生命" :value="gameStore.stats.hp" icon="❤️" />
+            <StatBar label="理智" :value="gameStore.stats.san" icon="🧠" />
+          </div>
+          
+          <!-- 背包按钮 -->
+          <div class="flex justify-center">
+            <button
+              class="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-all border border-gray-700"
+              @click="showInventory = !showInventory"
+            >
+              <span class="text-lg">🎒</span>
+              <span class="text-sm font-medium">背包</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -336,20 +350,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 底部工具栏：仅移动端显示 -->
-    <div
-      class="lg:hidden sticky bottom-0 bg-black/90 backdrop-blur border-t border-gray-800 p-3 safe-area-bottom"
-    >
-      <div class="max-w-2xl mx-auto flex justify-center">
-        <button
-          class="flex flex-col items-center text-gray-400 hover:text-white transition"
-          @click="showInventory = !showInventory"
-        >
-          <span class="text-xl">🎒</span>
-          <span class="text-xs">背包</span>
-        </button>
-      </div>
-    </div>
+
 
     <!-- 背包弹窗：仅移动端使用 -->
     <Teleport to="body">
