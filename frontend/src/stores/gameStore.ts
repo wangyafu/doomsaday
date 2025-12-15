@@ -11,8 +11,7 @@ export const useGameStore = defineStore('game', () => {
   // 玩家状态
   const stats = ref<Stats>({
     hp: 100,
-    san: 100,
-    hunger: 100
+    san: 100
   })
   
   // 背包物品
@@ -55,7 +54,7 @@ export const useGameStore = defineStore('game', () => {
   // 重置游戏
   function resetGame() {
     day.value = 1
-    stats.value = { hp: 100, san: 100, hunger: 100 }
+    stats.value = { hp: 100, san: 100 }
     inventory.value = []
     hiddenTags.value = []
     history.value = []
@@ -98,9 +97,6 @@ export const useGameStore = defineStore('game', () => {
     }
     if (changes.san !== undefined) {
       stats.value.san = Math.max(0, Math.min(100, stats.value.san + changes.san))
-    }
-    if (changes.hunger !== undefined) {
-      stats.value.hunger = Math.max(0, Math.min(100, stats.value.hunger + changes.hunger))
     }
   }
   

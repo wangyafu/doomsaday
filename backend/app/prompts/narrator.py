@@ -43,7 +43,7 @@ NARRATOR_NARRATIVE_SYSTEM_PROMPT = f"""
 
 ### 叙事原则
 - 前后连贯：记住之前发生的事，让故事有因果
-- 状态驱动：玩家的HP/Hunger/SAN会影响你的描写基调
+- 状态驱动：玩家的HP/SAN会影响你的描写基调
 - 物品关联：玩家拥有的物品应该自然地出现在叙事中
 - 适度留白：给玩家想象空间，不要过度解释
 
@@ -81,7 +81,7 @@ NARRATOR_NARRATIVE_SYSTEM_PROMPT = f"""
 [日志正文...]
 
 <state_update>
-{{"stat_changes": {{"hp": 0, "san": 5, "hunger": 0}}, "item_changes": {{"remove": [{{"name": "压缩饼干", "count": 1}}], "add": []}}, "new_hidden_tags": [], "remove_hidden_tags": []}}
+{{"stat_changes": {{"hp": 0, "san": 5}}, "item_changes": {{"remove": [], "add": []}}, "new_hidden_tags": [], "remove_hidden_tags": []}}
 </state_update>
 </example>
 ### 有危机事件时
@@ -115,16 +115,19 @@ D. 选项4描述
 
 ### <state_update>标签说明（仅无危机事件时需要）
 必须包含以下字段的JSON对象：
-- stat_changes: 对象，包含 hp、san、hunger 三个数值（可正可负可为0）
+- stat_changes: 对象，包含 hp、san 两个数值（可正可负可为0）
 - item_changes: 对象，包含 remove 和 add 两个数组
+  - 数组中的每个物品对象必须包含 name 和 count 字段（注意：是 count 不是 quantity）
 - new_hidden_tags: 字符串数组（新增的标签）
 - remove_hidden_tags: 字符串数组（需要移除的标签）
 
-状态变化规则：
-- 如果用户缺乏食物，则每日基础 hunger -30。否则hunger不变。
-- 消耗品（食物、药品）使用后必须在 remove 中扣除。
-- 工具类物品（武器等）通常不消耗。
+
+
+JSON格式要求：
+- 物品对象的字段名必须是 "name" 和 "count"
+
 </output_format>
+{STATE_CHANGE_RULES}
 
 <constraints>
 ## 约束与禁止

@@ -92,7 +92,7 @@ async def narrate_stream(request: NarrateRequest):
     logger.info("="*50)
     logger.info("[NARRATE/STREAM] 请求输入:")
     logger.info(f"  天数: {request.day}")
-    logger.info(f"  状态: HP={request.stats.hp}, SAN={request.stats.san}, HUNGER={request.stats.hunger}")
+    logger.info(f"  状态: HP={request.stats.hp}, SAN={request.stats.san}")
     if request.shelter:
         logger.info(f"  避难所: {request.shelter.name}")
     logger.info(f"  背包: {[f'{i.name}x{i.count}' for i in request.inventory]}")
@@ -171,7 +171,7 @@ async def judge_stream(request: JudgeRequest):
     logger.info(f"  天数: {request.day}")
     logger.info(f"  事件上下文: {request.event_context[:100]}...")
     logger.info(f"  玩家行动: {request.action_content}")
-    logger.info(f"  状态: HP={request.stats.hp}, SAN={request.stats.san}, HUNGER={request.stats.hunger}")
+    logger.info(f"  状态: HP={request.stats.hp}, SAN={request.stats.san}")
     logger.info(f"  背包: {[f'{i.name}x{i.count}' for i in request.inventory]}")
     logger.info(f"  历史记录条数: {len(request.history)}")
     
@@ -240,7 +240,7 @@ async def ending(request: EndingRequest) -> EndingResponse:
     logger.info("[ENDING] 请求输入:")
     logger.info(f"  存活天数: {request.days_survived}")
     logger.info(f"  高光时刻: {request.high_light_moment}")
-    logger.info(f"  最终状态: HP={request.final_stats.hp}, SAN={request.final_stats.san}, HUNGER={request.final_stats.hunger}")
+    logger.info(f"  最终状态: HP={request.final_stats.hp}, SAN={request.final_stats.san}")
     logger.info(f"  最终背包: {[f'{i.name}x{i.count}' for i in request.final_inventory]}")
     
     request_data = format_request_for_log(request)

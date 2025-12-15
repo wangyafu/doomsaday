@@ -93,19 +93,22 @@ JUDGE_NARRATIVE_SYSTEM_PROMPT = f"""
   - 50-69：中规中矩，完成目标但有代价
   - 30-49：勉强过关，付出较大代价
   - 0-29：糟糕决策，严重后果
-- stat_changes: 对象，包含 hp、san、hunger 三个数值
+- stat_changes: 对象，包含 hp、san 两个数值。
 - item_changes: 对象，包含 remove 和 add 两个数组
+  - 数组中的每个物品对象必须包含 name 和 count 字段（注意：是 count 不是 quantity）
 - new_hidden_tags: 字符串数组（新增的标签）
 - remove_hidden_tags: 字符串数组（需要移除的标签）
 
-{STATE_CHANGE_RULES}
-</output_format>
+JSON格式要求：
+- 物品对象的字段名必须是 "name" 和 "count"
 
+
+</output_format>
+{STATE_CHANGE_RULES}
 <constraints>
 ## 约束与禁止
 
 ### 必须遵守
-- 始终使用中文
 - 判定必须基于玩家实际拥有的物品
 - 保持与之前叙事的连贯性
 - 结果要有明确的成功/失败倾向
@@ -114,7 +117,6 @@ JUDGE_NARRATIVE_SYSTEM_PROMPT = f"""
 - 不要让玩家凭空获得物品
 - 不要无视物品限制（没有就是没有）
 - 不要过于仁慈（这是末世，不是童话）
-- 不要过于残忍（给玩家活路，但要付出代价）
 </constraints>
 """
 

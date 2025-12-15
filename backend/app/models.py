@@ -12,7 +12,6 @@ class Stats(BaseModel):
     """玩家状态数值"""
     hp: int = Field(..., description="生命值")
     san: int = Field(..., description="理智值")
-    hunger: int = Field(..., description="饱腹度")
 
 
 class InventoryItem(BaseModel):
@@ -81,7 +80,6 @@ class StatChanges(BaseModel):
     """状态变更"""
     hp: int = Field(default=0, description="生命值变化")
     san: int = Field(default=0, description="理智值变化")
-    hunger: int = Field(default=0, description="饱腹度变化")
 
 
 # ==================== Ending 接口模型 ====================

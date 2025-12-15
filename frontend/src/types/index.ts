@@ -2,7 +2,6 @@
 export interface Stats {
   hp: number      // 生命值
   san: number     // 理智值
-  hunger: number  // 饱腹度
 }
 
 // 背包物品
@@ -49,7 +48,6 @@ export interface NarrateStateResponse {
   stat_changes: {
     hp: number
     san: number
-    hunger: number
   }
   item_changes: {
     remove: InventoryItem[]
@@ -65,7 +63,6 @@ export interface JudgeStateResponse {
   stat_changes: {
     hp: number
     san: number
-    hunger: number
   }
   item_changes: {
     remove: InventoryItem[]

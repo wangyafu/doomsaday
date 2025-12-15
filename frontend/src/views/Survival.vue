@@ -114,9 +114,9 @@ async function generateDailyNarration() {
       // 添加历史记录（无危机，不需要 player_action 和 judge_result）
       gameStore.addHistory(parsed.logText, "none", null, null);
     } else if (!parsed.hasCrisis && !parsed.stateUpdate) {
-      // 无危机但也没有状态更新（AI 可能没有正确输出），使用默认消耗
-      console.warn("⚠️ 无危机事件但未解析到状态更新，使用默认消耗");
-      gameStore.updateStats({ hp: 0, san: 0, hunger: -30 });
+      // 无危机但也没有状态更新（AI 可能没有正确输出），使用默认值
+      console.warn("⚠️ 无危机事件但未解析到状态更新，使用默认值");
+      gameStore.updateStats({ hp: 0, san: 0 });
       gameStore.addHistory(parsed.logText, "none", null, null);
     }
   } catch (error: unknown) {
@@ -193,8 +193,8 @@ async function executeAction(action: string) {
       );
     } else {
       // 未解析到状态更新，使用默认值
-      console.warn("⚠️ 未解析到 Judge 状态更新，使用默认消耗");
-      gameStore.updateStats({ hp: 0, san: -5, hunger: -30 });
+      console.warn("⚠️ 未解析到 Judge 状态更新，使用默认值");
+      gameStore.updateStats({ hp: 0, san: -5 });
       gameStore.addHistory(eventContext.value, "none", action, narrativeText);
     }
 
@@ -244,9 +244,8 @@ onMounted(() => {
         </div>
 
         <!-- 状态条：仅移动端显示 -->
-        <div class="lg:hidden grid grid-cols-3 gap-3 max-w-2xl mx-auto">
+        <div class="lg:hidden grid grid-cols-2 gap-3 max-w-2xl mx-auto">
           <StatBar label="生命" :value="gameStore.stats.hp" icon="❤️" />
-          <StatBar label="饱腹" :value="gameStore.stats.hunger" icon="🍔" />
           <StatBar label="理智" :value="gameStore.stats.san" icon="🧠" />
         </div>
       </div>
@@ -260,7 +259,6 @@ onMounted(() => {
           <h3 class="text-lg font-bold mb-4">📊 状态</h3>
           <div class="space-y-4">
             <StatBar label="生命" :value="gameStore.stats.hp" icon="❤️" />
-            <StatBar label="饱腹" :value="gameStore.stats.hunger" icon="🍔" />
             <StatBar label="理智" :value="gameStore.stats.san" icon="🧠" />
           </div>
         </div>

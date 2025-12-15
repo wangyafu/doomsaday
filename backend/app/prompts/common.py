@@ -44,23 +44,16 @@ GAME_MECHANICS_CONTEXT = """
 <game_mechanics>
 ## 核心机制
 
-### 三维属性系统
-- ❤️ 生命(HP)：0-100，归零即死亡。受伤、感染、饥饿过度都会扣减
-- 🍔 饱腹(Hunger)：0-100，食物不足时会下降，下降到0时身体虚弱，生命流逝。
+### 双维属性系统
+- ❤️ 生命(HP)：0-100，归零即死亡。受伤、感染都会扣减
 - 🧠 理智(SAN)：0-100，影响叙事风格和决策选项。低于30触发幻觉描写，低于10可能做出疯狂行为
 
 ### 属性联动规则
-- Hunger < 30：每天额外扣 HP -5
-- Hunger = 0：每天扣 HP -15
 - SAN < 30：叙事出现幻觉、偏执描写
 - SAN < 10：可能出现自残、攻击同伴等极端选项
 - HP < 20：进入"濒死"状态，行动成功率降低
 
-### 物品系统
-- 消耗品：食物、水、药品（使用后消失）
-- 工具：武器、工具（可重复使用，但可能损坏）
-- 情绪物品：宠物、娱乐品（提供SAN恢复，是"奢侈品"）
-- 特殊物品：钥匙、地图等剧情道具
+
 
 ### 避难所特性
 - 防御等级：影响被袭击概率和抵御能力
@@ -77,18 +70,16 @@ GAME_MECHANICS_CONTEXT = """
 # ==================== 状态更新共享规则 ====================
 
 STATE_CHANGE_RULES = """
+<state_update_rules>
 ## 状态变化规则
 
 ### HP（生命）变化触发
-- 受伤/被攻击：轻伤 -5~-20，重伤 -20~-80,受到致命伤hp直接归零。
+- 受伤/被攻击：轻伤 -5~-20，重伤 -20~-80，受到致命伤hp直接归零
 - 治疗/使用药品：+10~+30（根据药品类型）
-- 饥饿惩罚：hunger<30 时每天额外 -5，hunger=0 时每天 -15
 - 生病/感染：持续下降，需添加对应 tag
-
-### Hunger（饱腹）变化触发
-- 食物充足时，hunger保持为100.
-- 食物不足时，hunger
-- 没有时，hunger每天减30.
+- 休息/恢复：+5~+10
+- 缺少食物，一天没有进食：-20
+- 缺少饮水，一天没有饮水：-40
 
 ### SAN（理智）变化触发
 - 恐惧/压力事件：-5~-15
@@ -98,10 +89,12 @@ STATE_CHANGE_RULES = """
 - 长期隔离：每天 -3~-5
 
 ### 物品变化规则
+
 - 消耗品（食物、药品、弹药）：使用后必须在 remove 中扣除
 - 工具类（武器、工具）：通常不消耗，但可能损坏（添加 tag）
 - 获得新物品：放在 add 中
 - 叙事未提及的物品：remove 和 add 保持空数组
+- 每天必须有进食和饮水，在有食物、水源时即便正文没有提及也要扣除相应消耗品
 
 ### 隐藏标签(hidden_tags)用途
 - 持续状态：<受伤>、<被吓到了>
@@ -113,28 +106,35 @@ STATE_CHANGE_RULES = """
 - remove_hidden_tags：需要移除的标签
 - 只有当状态确实改变时才添加/移除标签
 - 移除标签时必须使用与现有标签完全相同的字符串
+</state_update_rules>
 """
 
 STATE_OUTPUT_FORMAT = """
 ## 输出格式
 必须返回JSON对象，包含以下字段：
-- stat_changes: 对象，包含 hp、san、hunger 三个数值（可正可负可为0）
+- stat_changes: 对象，包含 hp、san 两个数值（可正可负可为0）
 - item_changes: 对象，包含 remove 和 add 两个数组
+  - 数组中的每个物品对象必须包含 name 和 count 字段（注意：是 count 不是 quantity）
 - new_hidden_tags: 字符串数组（新增的标签）
 - remove_hidden_tags: 字符串数组（需要移除的标签）
 
 ### 示例输出
 
-平静的一天，吃了压缩饼干：
-{"stat_changes": {"hp": 0, "san": 5, "hunger": 0}, "item_changes": {"remove": [{"name": "压缩饼干", "count": 1}], "add": []}, "new_hidden_tags": [], "remove_hidden_tags": []}
+平静的一天，读了小说：
+{"stat_changes": {"hp": 0, "san": 5}, "item_changes": {"remove": [], "add": []}, "new_hidden_tags": [], "remove_hidden_tags": []}
 
 被丧尸抓伤，消耗绷带包扎：
-{"stat_changes": {"hp": -10, "san": -5, "hunger":0}, "item_changes": {"remove": [{"name": "绷带", "count": 1}], "add": []}, "new_hidden_tags": ["受伤"], "remove_hidden_tags": []}
+{"stat_changes": {"hp": -10, "san": -5}, "item_changes": {"remove": [{"name": "绷带", "count": 1}], "add": []}, "new_hidden_tags": ["受伤"], "remove_hidden_tags": []}
 
 伤口痊愈，移除受伤标签：
-{"stat_changes": {"hp": 5, "san": 5, "hunger": 0}, "item_changes": {"remove": [], "add": []}, "new_hidden_tags": [], "remove_hidden_tags": ["受伤"]}
+{"stat_changes": {"hp": 5, "san": 5}, "item_changes": {"remove": [], "add": []}, "new_hidden_tags": [], "remove_hidden_tags": ["受伤"]}
 
-重要：直接输出JSON对象，不要有任何其他文字或代码块标记。
+消耗食物和水：
+{"stat_changes": {"hp": 0, "san": 0}, "item_changes": {"remove": [{"name": "桶装水", "count": 1}, {"name": "压缩饼干", "count": 1}], "add": []}, "new_hidden_tags": [], "remove_hidden_tags": []}
+
+重要：
+1. 直接输出JSON对象，不要有任何其他文字或代码块标记
+2. 物品对象的字段名必须是 "name" 和 "count"，不要使用 "quantity" 或其他名称
 """
 
 
@@ -147,14 +147,12 @@ def format_stats(stats: Stats) -> str:
     status_notes = []
     if stats.hp < 20:
         status_notes.append("【濒死】")
-    if stats.hunger < 30:
-        status_notes.append("【饥饿】")
     if stats.san < 30:
         status_notes.append("【精神不稳】")
     elif stats.san < 10:
         status_notes.append("【濒临崩溃】")
     
-    base = f"❤️生命: {stats.hp}/100 | 🍔饱腹: {stats.hunger}/100 | 🧠理智: {stats.san}/100"
+    base = f"❤️生命: {stats.hp}/100 | 🧠理智: {stats.san}/100"
     if status_notes:
         return f"{base}\n状态警告: {' '.join(status_notes)}"
     return base
