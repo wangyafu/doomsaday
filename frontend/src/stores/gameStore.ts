@@ -43,8 +43,8 @@ export const useGameStore = defineStore('game', () => {
   // 高光时刻
   const highLightMoment = ref('')
   
-  // 游戏是否结束
-  const isGameOver = computed(() => stats.value.hp <= 0)
+  // 游戏是否结束（HP 或 SAN 归零）
+  const isGameOver = computed(() => stats.value.hp <= 0 || stats.value.san <= 0)
   
   // 是否通关（存活超过30天）
   const isVictory = computed(() => day.value > 30)

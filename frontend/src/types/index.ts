@@ -8,6 +8,8 @@ export interface Stats {
 export interface InventoryItem {
   name: string
   count: number
+  description?: string  // 可选：物品描述（对玩家可见）
+  hidden?: string       // 可选：隐藏信息（仅供AI参考，包含数值运算法则）
 }
 
 // 历史记录条目
@@ -28,6 +30,7 @@ export interface ShopItem {
   category: 'food' | 'weapon' | 'medical' | 'emotional'
   description: string
   icon: string
+  hidden?: string    // 可选：隐藏信息（仅供AI参考，包含数值运算法则）
 }
 
 // 避难所定义

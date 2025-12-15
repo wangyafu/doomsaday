@@ -122,7 +122,8 @@ async def narrate_stream(request: NarrateRequest):
             async for chunk in llm.chat_stream(
                 system_prompt=NARRATOR_NARRATIVE_SYSTEM_PROMPT,
                 user_prompt=user_prompt,
-                temperature=0.9
+                temperature=0.9,
+                role="narrator"
             ):
                 full_response_chunks.append(chunk)
                 yield format_sse_event("content", {"text": chunk})
@@ -197,7 +198,8 @@ async def judge_stream(request: JudgeRequest):
             async for chunk in llm.chat_stream(
                 system_prompt=JUDGE_NARRATIVE_SYSTEM_PROMPT,
                 user_prompt=user_prompt,
-                temperature=0.8
+                temperature=0.8,
+                role="judge"
             ):
                 full_response_chunks.append(chunk)
                 yield format_sse_event("content", {"text": chunk})
@@ -258,10 +260,11 @@ async def ending(request: EndingRequest) -> EndingResponse:
         )
         
         # 调用LLM
-        result = await llm.chat(
+        result = await llm.chat_json(
             system_prompt=ENDING_SYSTEM_PROMPT,
             user_prompt=user_prompt,
-            temperature=0.9  # 高创意度，让评语更有趣
+            temperature=0.9,  # 高创意度，让评语更有趣
+            role="ending"
         )
         
         # 打印响应日志

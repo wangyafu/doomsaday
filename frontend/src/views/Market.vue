@@ -89,11 +89,16 @@ function removeFromCart(itemId: string) {
 
 // 结束购物，进入生存阶段
 function finishShopping() {
-  // 将购物车物品添加到背包
+  // 将购物车物品添加到背包（包含描述和隐藏信息）
   cart.value.forEach((count, id) => {
     const item = shopItems.find(i => i.id === id)
     if (item) {
-      gameStore.addItem({ name: item.name, count })
+      gameStore.addItem({ 
+        name: item.name, 
+        count,
+        description: item.description,
+        hidden: item.hidden
+      })
     }
   })
   

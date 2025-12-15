@@ -16,20 +16,38 @@ class LLMService:
     
     def __init__(self):
         self.settings = get_settings()
-        self.model = self.settings.openai_model
+        # 默认使用通用配置
+        self.default_model = self.settings.openai_model
     
-    def _get_client(self) -> AsyncOpenAI:
-        """每次请求创建新的客户端，避免状态问题"""
-        return AsyncOpenAI(
-            api_key=self.settings.openai_api_key,
-            base_url=self.settings.openai_base_url
+    def _get_client(self, role: str | None = None) -> tuple[AsyncOpenAI, str]:
+        """
+        创建客户端并返回对应的模型名称
+        
+        Args:
+            role: 角色名称（narrator/judge/ending），如果为None则使用通用配置
+            
+        Returns:
+            (client, model) 二元组
+        """
+        if role:
+            api_key, base_url, model = self.settings.get_model_config(role)
+        else:
+            api_key = self.settings.openai_api_key
+            base_url = self.settings.openai_base_url
+            model = self.default_model
+        
+        client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=base_url
         )
+        return client, model
     
     async def chat_stream(
         self,
         system_prompt: str,
         user_prompt: str,
-        temperature: float = 1.0
+        temperature: float = 1.0,
+        role: str | None = None
     ) -> AsyncGenerator[str, None]:
         """
         流式输出，用于叙事内容
@@ -38,13 +56,14 @@ class LLMService:
             system_prompt: 系统提示词，定义AI角色
             user_prompt: 用户提示词，包含上下文
             temperature: 创意度，0-2
+            role: 角色名称（narrator/judge/ending），用于选择对应的模型配置
             
         Yields:
             逐块返回的文本内容
         """
-        client = self._get_client()
+        client, model = self._get_client(role)
         stream = await client.chat.completions.create(
-            model=self.model,
+            model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -61,7 +80,8 @@ class LLMService:
         self,
         system_prompt: str,
         user_prompt: str,
-        temperature: float = 0.7
+        temperature: float = 0.7,
+        role: str | None = None
     ) -> dict:
         """
         JSON模式输出，用于状态更新
@@ -70,6 +90,7 @@ class LLMService:
             system_prompt: 系统提示词，定义AI角色
             user_prompt: 用户提示词，包含上下文
             temperature: 创意度，0-2
+            role: 角色名称（narrator/judge/ending），用于选择对应的模型配置
             
         Returns:
             解析后的JSON字典
@@ -77,9 +98,9 @@ class LLMService:
         Raises:
             ValueError: 当LLM返回空内容或无效JSON时
         """
-        client = self._get_client()
+        client, model = self._get_client(role)
         response = await client.chat.completions.create(
-            model=self.model,
+            model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}

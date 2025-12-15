@@ -18,6 +18,8 @@ class InventoryItem(BaseModel):
     """背包物品"""
     name: str = Field(..., description="物品名称")
     count: int = Field(..., description="物品数量")
+    description: Optional[str] = Field(default=None, description="物品描述（对玩家可见）")
+    hidden: Optional[str] = Field(default=None, description="隐藏信息（仅供AI参考，包含数值运算法则）")
 
 
 class HistoryEntry(BaseModel):

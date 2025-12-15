@@ -34,7 +34,7 @@ GAME_WORLD_CONTEXT = """
 ### 生存要素
 - 物资：食物、水、药品是硬通货
 - 威胁：丧尸、饥饿、疾病、其他幸存者（强盗、疯子）
-- 心理：长期隔离和恐惧会导致理智崩溃
+- 心理：长期隔离和恐惧会导致理智崩溃,理智崩溃同样造成坏结局。
 </world_setting>
 """
 
@@ -48,8 +48,7 @@ GAME_MECHANICS_CONTEXT = """
 - 🧠 理智(SAN)：0-100，影响叙事风格和决策选项。低于30触发幻觉描写，低于10可能做出疯狂行为
 
 ### 属性联动规则
-- SAN < 30：叙事出现幻觉、偏执描写
-- SAN < 10：可能出现自残、攻击同伴等极端选项
+- SAN < 30：叙事出现幻觉、偏执描写，行动成功率降低
 - HP < 20：进入"濒死"状态，行动成功率降低
 
 
@@ -64,6 +63,11 @@ GAME_MECHANICS_CONTEXT = """
 2. 每个回合中先由<AI叙事引擎>生成生存日志。如果有危机事件，<AI叙事引擎>还要生成候选选项。
 3. 如果有危机事件，用户做出决策后<AI裁判引擎>会生成相应判定。
 4. 更新受影响的状态后进入下一天。
+
+##  结局机制
+- 生命值清零后死亡，坏结局
+- san值清零后疯癫，坏结局
+- 成功活过30天等到军队营救，好结局。
 </game_mechanics>
 """
 # ==================== 状态更新共享规则 ====================
@@ -73,8 +77,7 @@ STATE_CHANGE_RULES = """
 ## 状态变化规则
 
 ### HP（生命）变化触发
-- 受伤/被攻击：轻伤 -5~-20，重伤 -20~-80，受到致命伤hp直接归零
-- 治疗/使用药品：+10~+30（根据药品类型）
+
 - 生病/感染：持续下降，需添加对应 tag
 - 休息/恢复：+5~+10
 - 缺少食物，一天没有进食：-20
@@ -92,8 +95,8 @@ STATE_CHANGE_RULES = """
 - 消耗品（食物、药品、弹药）：使用后必须在 remove 中扣除
 - 工具类（武器、工具）：通常不消耗，但可能损坏（添加 tag）
 - 获得新物品：放在 add 中
-- 叙事未提及的物品：remove 和 add 保持空数组
 - 每天必须有进食和饮水，在有食物、水源时即便正文没有提及也要扣除相应消耗品
+- 为简化逻辑，一个成人每天消耗一份食物、一份瓶装水。
 
 ### 隐藏标签(hidden_tags)用途
 - 持续状态：<受伤>、<被吓到了>
@@ -158,7 +161,7 @@ def format_stats(stats: Stats) -> str:
 
 
 def format_inventory(inventory: list[InventoryItem]) -> str:
-    """格式化背包物品"""
+    """格式化背包物品（简单版，用于显示）"""
     if not inventory:
         return "背包空空如也（这很危险！）"
     
@@ -167,13 +170,30 @@ def format_inventory(inventory: list[InventoryItem]) -> str:
 
 
 def format_inventory_detailed(inventory: list[InventoryItem]) -> str:
-    """详细格式化背包，供Judge判定时使用"""
+    """
+    详细格式化背包，供AI判定时使用
+    包含物品的描述和隐藏信息（数值运算法则）
+    """
     if not inventory:
         return "<inventory empty='true'>背包空空如也</inventory>"
     
     lines = ["<inventory>"]
     for item in inventory:
-        lines.append(f"  <item name='{item.name}' count='{item.count}'/>")
+        # 基础属性
+        item_line = f"  <item name='{item.name}' count='{item.count}'"
+        
+        # 添加描述（如果有）
+        if item.description:
+            item_line += f" description='{item.description}'"
+        
+        # 添加隐藏信息（如果有）- 这是给AI看的数值运算法则
+        if item.hidden:
+            lines.append(item_line + ">")
+            lines.append(f"    <hidden_info>{item.hidden}</hidden_info>")
+            lines.append("  </item>")
+        else:
+            lines.append(item_line + "/>")
+    
     lines.append("</inventory>")
     return "\n".join(lines)
 
