@@ -160,10 +160,7 @@ onMounted(() => {
             <p class="text-gray-500">❤️ HP</p>
             <p class="font-bold">{{ gameStore.stats.hp }}</p>
           </div>
-          <div class="bg-gray-800 rounded p-2">
-            <p class="text-gray-500">🍔 饱腹</p>
-            <p class="font-bold">{{ gameStore.stats.hunger }}</p>
-          </div>
+         
           <div class="bg-gray-800 rounded p-2">
             <p class="text-gray-500">🧠 理智</p>
             <p class="font-bold">{{ gameStore.stats.san }}</p>

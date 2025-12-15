@@ -20,7 +20,6 @@ const afterScripts = [
 
 const currentText = ref('')
 const phase = ref<'dark' | 'flash' | 'wake' | 'countdown'>('dark')
-const scriptIndex = ref(0)
 const isTyping = ref(false)
 
 // 打字机效果
