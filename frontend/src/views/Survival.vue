@@ -254,11 +254,15 @@ onMounted(() => {
       class="sticky top-0 z-40 bg-black/90 backdrop-blur p-4 border-b border-gray-800"
     >
       <div class="max-w-5xl mx-auto">
-        <!-- 天数 -->
+        <!-- 天数 + 胜利倒计时 -->
         <div class="text-center mb-3 lg:mb-0">
           <span class="text-2xl font-bold text-red-500"
             >第 {{ gameStore.day }} 天</span
           >
+          <span class="ml-3 text-sm text-gray-400">
+            <span class="text-yellow-500">🏆</span>
+            距离胜利还需坚持 <span class="text-yellow-400 font-semibold">{{ Math.max(0, 21 - gameStore.day) }}</span> 天
+          </span>
         </div>
 
         <!-- 移动端：状态条 + 背包按钮 -->
