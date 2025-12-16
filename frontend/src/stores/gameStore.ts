@@ -72,8 +72,9 @@ export const useGameStore = defineStore('game', () => {
     profession.value = p
     // 应用职业加成
     money.value += p.bonusMoney
-    stats.value.hp = Math.max(1, Math.min(100, stats.value.hp + p.bonusHp))
-    stats.value.san = Math.max(1, Math.min(100, stats.value.san + p.bonusSan))
+    // 允许职业加成突破100上限（龙王等特殊职业）
+    stats.value.hp = Math.max(1, stats.value.hp + p.bonusHp)
+    stats.value.san = Math.max(1, stats.value.san + p.bonusSan)
   }
   
   // 选择避难所

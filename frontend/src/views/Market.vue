@@ -132,6 +132,17 @@ function onTimeUp() {
 
 // 启动倒计时
 onMounted(() => {
+  // 自动添加职业专属物品到购物车
+  if (gameStore.profession?.unlockedItems) {
+    gameStore.profession.unlockedItems.forEach(itemId => {
+      const item = professionItems[itemId]
+      if (item) {
+        // 专属物品自动添加到购物车（价格为0，不占用金钱）
+        cart.value.set(item.id, 1)
+      }
+    })
+  }
+  
   timer = window.setInterval(() => {
     timeLeft.value--
     if (timeLeft.value <= 0) {
