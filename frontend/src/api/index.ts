@@ -8,7 +8,12 @@ import type {
   EndingResponse,
 } from "@/types";
 
-const API_BASE = "/api";
+// 根据环境变量设置 API 基础路径
+// 开发环境：使用代理到 localhost:8000
+// 生产环境：使用完整的生产域名
+const API_BASE = import.meta.env.MODE === 'production' 
+  ? 'https://moshi.hgtang.com/api' 
+  : '/api';
 
 /**
  * 调试日志：打印 API 请求体
