@@ -13,7 +13,7 @@ const endingData = ref<EndingResponse | null>(null)
 const isLoading = ref(true)
 
 // 雷达图标签
-const radarLabels = ['战斗力', '生存力', '智慧', '运气', '心理']
+const radarLabels = ['战斗力', '生存力', '智慧', '运气', '人性']
 
 // 是否通关
 const isVictory = computed(() => gameStore.isVictory)
