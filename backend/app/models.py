@@ -42,6 +42,14 @@ class Shelter(BaseModel):
     hidden_discription: Optional[str] = Field(default=None, description="对玩家隐藏的描述（仅供AI参考）")
 
 
+class Profession(BaseModel):
+    """职业（用于AI上下文）"""
+    id: str = Field(..., description="职业ID")
+    name: str = Field(..., description="职业名称")
+    description: str = Field(..., description="对玩家可见的描述")
+    hidden_description: str = Field(..., description="隐藏描述（影响AI剧情发展）")
+
+
 # ==================== Narrate 接口模型 ====================
 
 class NarrateRequest(BaseModel):
@@ -52,6 +60,7 @@ class NarrateRequest(BaseModel):
     hidden_tags: list[str] = Field(default_factory=list, description="隐藏标签")
     history: list[HistoryEntry] = Field(default_factory=list, description="历史记录")
     shelter: Optional[Shelter] = Field(default=None, description="避难所信息")
+    profession: Optional[Profession] = Field(default=None, description="职业信息")
 
 
 # ==================== Judge 接口模型 ====================
@@ -64,6 +73,7 @@ class JudgeRequest(BaseModel):
     stats: Stats = Field(..., description="玩家当前状态")
     inventory: list[InventoryItem] = Field(default_factory=list, description="背包物品列表")
     history: list[HistoryEntry] = Field(default_factory=list, description="历史记录")
+    profession: Optional[Profession] = Field(default=None, description="职业信息")
 
 
 class ItemChange(BaseModel):
@@ -93,6 +103,7 @@ class EndingRequest(BaseModel):
     final_stats: Stats = Field(..., description="最终状态")
     final_inventory: list[InventoryItem] = Field(default_factory=list, description="最终背包")
     history: list[HistoryEntry] = Field(default_factory=list, description="完整历史记录")
+    profession: Optional[Profession] = Field(default=None, description="职业信息")
 
 
 class EndingResponse(BaseModel):

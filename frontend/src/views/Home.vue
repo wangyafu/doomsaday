@@ -83,6 +83,9 @@ function continueGame() {
       继续游戏 (第{{ gameStore.day }}天)
     </button>
     
+    <!-- 底部提示 -->
+    <p class="mt-8 text-gray-600 text-sm">点击选择末日场景开始游戏</p>
+    
     <!-- 支持作者 -->
     <div class="mt-12 text-center">
       <button 
@@ -128,8 +131,21 @@ function continueGame() {
       </transition>
     </div>
     
-    <!-- 底部提示 -->
-    <p class="mt-8 text-gray-600 text-sm">点击选择末日场景开始游戏</p>
+    <!-- 联系开发者 -->
+    <div class="mt-8 text-center">
+      <p class="text-gray-500 text-sm mb-2">联系开发者</p>
+      <a 
+        href="https://www.xiaohongshu.com/user/profile/635f85b8000000001901fe43"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 
+               text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-300 
+               hover:scale-105 shadow-lg hover:shadow-red-500/50"
+      >
+        <span class="text-lg">📕</span>
+        <span class="font-medium">小红书</span>
+      </a>
+    </div>
   </div>
 </template>
 

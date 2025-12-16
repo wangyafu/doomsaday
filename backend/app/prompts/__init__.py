@@ -21,7 +21,8 @@ from app.prompts.common import (
     format_inventory,
     format_inventory_detailed,
     format_history,
-    format_hidden_tags
+    format_hidden_tags,
+    format_profession
 )
 
 from app.prompts.narrator import (
@@ -49,6 +50,7 @@ __all__ = [
     "format_inventory_detailed",
     "format_history",
     "format_hidden_tags",
+    "format_profession",
     # Narrator（叙事+状态更新合并）
     "NARRATOR_NARRATIVE_SYSTEM_PROMPT",
     "build_narrator_prompt",

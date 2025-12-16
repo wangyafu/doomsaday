@@ -3,6 +3,7 @@ import type {
   InventoryItem,
   HistoryEntry,
   Shelter,
+  Profession,
   NarrateStateResponse,
   JudgeStateResponse,
   EndingResponse,
@@ -82,6 +83,7 @@ export async function* narrateStream(params: {
   hidden_tags: string[];
   history: HistoryEntry[];
   shelter?: Shelter | null;
+  profession?: { id: string; name: string; description: string; hidden_description: string } | null;
 }): AsyncGenerator<string, void, unknown> {
   logRequest("POST /game/narrate/stream", params);
   
@@ -312,6 +314,7 @@ export async function* judgeStream(params: {
   stats: Stats;
   inventory: InventoryItem[];
   history: HistoryEntry[];
+  profession?: { id: string; name: string; description: string; hidden_description: string } | null;
 }): AsyncGenerator<string, void, unknown> {
   logRequest("POST /game/judge/stream", params);
   
@@ -392,6 +395,7 @@ export async function ending(params: {
   final_stats: Stats;
   final_inventory: InventoryItem[];
   history: HistoryEntry[];
+  profession?: { id: string; name: string; description: string; hidden_description: string } | null;
 }): Promise<EndingResponse> {
   logRequest("POST /game/ending", params);
   

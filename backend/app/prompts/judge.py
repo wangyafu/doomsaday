@@ -5,7 +5,7 @@ Judge 提示词模块 - 冷酷裁判/DM角色
 1. 判定玩家行动的结果（流式输出）
 2. 同时输出状态更新和行动评分（XML标签包裹的JSON）
 """
-from app.models import Stats, InventoryItem, HistoryEntry
+from app.models import Stats, InventoryItem, HistoryEntry, Profession
 from app.prompts.common import (
     GAME_WORLD_CONTEXT,
     GAME_MECHANICS_CONTEXT,
@@ -14,6 +14,7 @@ from app.prompts.common import (
     format_inventory_detailed,
     format_history,
     format_hidden_tags,
+    format_profession,
 )
 
 
@@ -126,7 +127,8 @@ def build_judge_narrative_prompt(
     action_content: str,
     stats: Stats,
     inventory: list[InventoryItem],
-    history: list[HistoryEntry]
+    history: list[HistoryEntry],
+    profession: Profession | None = None
 ) -> str:
     """
     构建Judge叙事阶段的用户提示词
@@ -135,10 +137,14 @@ def build_judge_narrative_prompt(
         day: 当前天数
         event_context: 本回合 /narrate/stream 生成的今日日志（危机事件描述）
         action_content: 用户选择的行动（A/B/C/D选项或自由输入）
+        profession: 玩家职业信息
     """
     return f"""
 <context>
 ## 判定情境 - 末世爆发后第 {day} 天
+
+### 玩家职业
+{format_profession(profession)}
 
 ### 近期经历（背景参考）
 {format_history(history, max_days=5)}

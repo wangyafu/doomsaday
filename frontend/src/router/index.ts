@@ -14,6 +14,11 @@ const router = createRouter({
       component: () => import('@/views/Rebirth.vue')
     },
     {
+      path: '/profession',
+      name: 'ProfessionSelect',
+      component: () => import('@/views/ProfessionSelect.vue')
+    },
+    {
       path: '/market',
       name: 'Market',
       component: () => import('@/views/Market.vue')

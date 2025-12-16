@@ -3,10 +3,26 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore'
 import { shelters, shopItems } from '@/data/shopItems'
+import { professionItems } from '@/data/professions'
 import type { ShopItem, Shelter } from '@/types'
 
 const router = useRouter()
 const gameStore = useGameStore()
+
+// 获取当前职业解锁的额外商品
+const unlockedProfessionItems = computed(() => {
+  const profession = gameStore.profession
+  if (!profession?.unlockedItems) return []
+  
+  return profession.unlockedItems
+    .map(id => professionItems[id])
+    .filter(item => item !== undefined) as ShopItem[]
+})
+
+// 合并基础商品和职业解锁商品
+const allShopItems = computed(() => {
+  return [...shopItems, ...unlockedProfessionItems.value]
+})
 
 // 倒计时（3分钟 = 180秒）
 const timeLeft = ref(180)
@@ -30,15 +46,15 @@ const formattedTime = computed(() => {
 
 // 过滤商品
 const filteredItems = computed(() => {
-  if (currentCategory.value === 'all') return shopItems
-  return shopItems.filter(item => item.category === currentCategory.value)
+  if (currentCategory.value === 'all') return allShopItems.value
+  return allShopItems.value.filter(item => item.category === currentCategory.value)
 })
 
 // 购物车总价
 const cartTotal = computed(() => {
   let total = 0
   cart.value.forEach((count, id) => {
-    const item = shopItems.find(i => i.id === id)
+    const item = allShopItems.value.find(i => i.id === id)
     if (item) total += item.price * count
   })
   return total
@@ -48,7 +64,7 @@ const cartTotal = computed(() => {
 const cartSpace = computed(() => {
   let space = 0
   cart.value.forEach((count, id) => {
-    const item = shopItems.find(i => i.id === id)
+    const item = allShopItems.value.find(i => i.id === id)
     if (item) space += item.space * count
   })
   return space
@@ -91,7 +107,7 @@ function removeFromCart(itemId: string) {
 function finishShopping() {
   // 将购物车物品添加到背包（包含描述和隐藏信息）
   cart.value.forEach((count, id) => {
-    const item = shopItems.find(i => i.id === id)
+    const item = allShopItems.value.find(i => i.id === id)
     if (item) {
       gameStore.addItem({ 
         name: item.name, 
@@ -134,18 +150,29 @@ onUnmounted(() => {
   <div class="market min-h-screen bg-gray-900 text-white">
     <!-- 倒计时头部 -->
     <div class="sticky top-0 z-50 bg-black/90 backdrop-blur p-4 border-b border-red-900">
-      <div class="max-w-4xl mx-auto flex items-center justify-between">
-        <div class="text-sm text-gray-400">
-          💰 ¥{{ remainingMoney.toLocaleString() }}
+      <div class="max-w-4xl mx-auto">
+        <!-- 职业信息 -->
+        <div v-if="gameStore.profession" class="flex items-center justify-center gap-2 mb-2 text-sm">
+          <span class="text-xl">{{ gameStore.profession.icon }}</span>
+          <span class="text-gray-300">{{ gameStore.profession.name }}</span>
+          <span class="text-gray-500">|</span>
+          <span class="text-gray-400">❤️{{ gameStore.stats.hp }}</span>
+          <span class="text-gray-400">🧠{{ gameStore.stats.san }}</span>
         </div>
-        <div 
-          class="text-3xl font-mono font-bold"
-          :class="timeLeft <= 30 ? 'text-red-500 animate-pulse' : 'text-red-400'"
-        >
-          {{ formattedTime }}
-        </div>
-        <div class="text-sm text-gray-400">
-          📦 {{ remainingSpace }} 格
+        
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-gray-400">
+            💰 ¥{{ remainingMoney.toLocaleString() }}
+          </div>
+          <div 
+            class="text-3xl font-mono font-bold"
+            :class="timeLeft <= 30 ? 'text-red-500 animate-pulse' : 'text-red-400'"
+          >
+            {{ formattedTime }}
+          </div>
+          <div class="text-sm text-gray-400">
+            📦 {{ remainingSpace }} 格
+          </div>
         </div>
       </div>
     </div>
@@ -237,7 +264,7 @@ onUnmounted(() => {
             :key="id"
             class="flex items-center gap-1 bg-gray-800 rounded px-2 py-1 text-sm whitespace-nowrap"
           >
-            <span>{{ shopItems.find(i => i.id === id)?.icon }}</span>
+            <span>{{ allShopItems.find(i => i.id === id)?.icon }}</span>
             <span>x{{ count }}</span>
             <button 
               class="text-red-400 hover:text-red-300 ml-1"

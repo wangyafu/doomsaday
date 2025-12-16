@@ -7,12 +7,13 @@ Ending 提示词模块 - 毒舌评论员/算命师角色
 3. 写毒舌评语
 4. 生成五维雷达图数据
 """
-from app.models import Stats, InventoryItem, HistoryEntry
+from app.models import Stats, InventoryItem, HistoryEntry, Profession
 from app.prompts.common import (
     GAME_WORLD_CONTEXT,
     format_stats,
     format_inventory,
     format_history,
+    format_profession,
 )
 
 
@@ -143,7 +144,8 @@ def build_ending_prompt(
     high_light_moment: str,
     final_stats: Stats,
     final_inventory: list[InventoryItem],
-    history: list[HistoryEntry]
+    history: list[HistoryEntry],
+    profession: Profession | None = None
 ) -> str:
     """
     构建Ending的用户提示词
@@ -157,6 +159,9 @@ def build_ending_prompt(
     return f"""
 <game_summary>
 ## 游戏结束 - {ending_type}
+
+### 玩家职业
+{format_profession(profession)}
 
 ### 存活天数
 {days_survived} 天

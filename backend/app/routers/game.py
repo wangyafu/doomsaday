@@ -116,7 +116,8 @@ async def narrate_stream(request: NarrateRequest):
         inventory=request.inventory,
         hidden_tags=request.hidden_tags,
         history=request.history,
-        shelter=request.shelter
+        shelter=request.shelter,
+        profession=request.profession
     )
     
     if not is_prod:
@@ -200,7 +201,8 @@ async def judge_stream(request: JudgeRequest):
         action_content=request.action_content,
         stats=request.stats,
         inventory=request.inventory,
-        history=request.history
+        history=request.history,
+        profession=request.profession
     )
     
     # 用于收集完整响应的容器
@@ -276,7 +278,8 @@ async def ending(request: EndingRequest) -> EndingResponse:
             high_light_moment=request.high_light_moment,
             final_stats=request.final_stats,
             final_inventory=request.final_inventory,
-            history=request.history
+            history=request.history,
+            profession=request.profession
         )
         
         # 调用LLM

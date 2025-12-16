@@ -84,6 +84,14 @@ async function generateDailyNarration() {
   try {
     // 流式获取叙事内容
     let fullText = "";
+    // 构建职业信息（转换为后端需要的格式）
+    const professionData = gameStore.profession ? {
+      id: gameStore.profession.id,
+      name: gameStore.profession.name,
+      description: gameStore.profession.description,
+      hidden_description: gameStore.profession.hiddenDescription
+    } : null;
+    
     for await (const chunk of narrateStream({
       day: gameStore.day,
       stats: gameStore.stats,
@@ -91,6 +99,7 @@ async function generateDailyNarration() {
       hidden_tags: gameStore.hiddenTags,
       history: gameStore.history,
       shelter: gameStore.shelter,
+      profession: professionData,
     })) {
       fullText += chunk;
       // 实时过滤 <hidden> 和 <state_update> 标签，避免展示给玩家
@@ -153,6 +162,14 @@ async function executeAction(action: string) {
   try {
     // 流式获取判定叙事（包含状态更新）
     let fullResult = "";
+    // 构建职业信息（转换为后端需要的格式）
+    const professionData = gameStore.profession ? {
+      id: gameStore.profession.id,
+      name: gameStore.profession.name,
+      description: gameStore.profession.description,
+      hidden_description: gameStore.profession.hiddenDescription
+    } : null;
+    
     for await (const chunk of judgeStream({
       day: gameStore.day,
       event_context: eventContext.value,
@@ -160,6 +177,7 @@ async function executeAction(action: string) {
       stats: gameStore.stats,
       inventory: gameStore.inventory,
       history: gameStore.history,
+      profession: professionData,
     })) {
       fullResult += chunk;
       // 实时过滤 <state_update> 标签，避免展示给玩家

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Stats, InventoryItem, HistoryEntry, Shelter } from '@/types'
+import type { Stats, InventoryItem, HistoryEntry, Shelter, Profession } from '@/types'
 
 export const useGameStore = defineStore('game', () => {
   // ==================== 状态 ====================
@@ -28,6 +28,9 @@ export const useGameStore = defineStore('game', () => {
   
   // 选择的避难所
   const shelter = ref<Shelter | null>(null)
+  
+  // 选择的职业
+  const profession = ref<Profession | null>(null)
   
   // 当前背包已用空间
   const usedSpace = computed(() => {
@@ -60,7 +63,17 @@ export const useGameStore = defineStore('game', () => {
     history.value = []
     money.value = 10000
     shelter.value = null
+    profession.value = null
     highLightMoment.value = ''
+  }
+  
+  // 选择职业（应用职业加成）
+  function selectProfession(p: Profession) {
+    profession.value = p
+    // 应用职业加成
+    money.value += p.bonusMoney
+    stats.value.hp = Math.max(1, Math.min(100, stats.value.hp + p.bonusHp))
+    stats.value.san = Math.max(1, Math.min(100, stats.value.san + p.bonusSan))
   }
   
   // 选择避难所
@@ -148,6 +161,7 @@ export const useGameStore = defineStore('game', () => {
     history,
     money,
     shelter,
+    profession,
     usedSpace,
     maxSpace,
     remainingSpace,
@@ -157,6 +171,7 @@ export const useGameStore = defineStore('game', () => {
     nextDay,
     // 方法
     resetGame,
+    selectProfession,
     selectShelter,
     addItem,
     removeItem,

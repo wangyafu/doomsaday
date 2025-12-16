@@ -23,12 +23,21 @@ async function generateEnding() {
   isLoading.value = true
   
   try {
+    // 构建职业信息（转换为后端需要的格式）
+    const professionData = gameStore.profession ? {
+      id: gameStore.profession.id,
+      name: gameStore.profession.name,
+      description: gameStore.profession.description,
+      hidden_description: gameStore.profession.hiddenDescription
+    } : null
+    
     const response = await ending({
       days_survived: gameStore.day,
       high_light_moment: gameStore.highLightMoment,
       final_stats: gameStore.stats,
       final_inventory: gameStore.inventory,
-      history: gameStore.history
+      history: gameStore.history,
+      profession: professionData
     })
     
     endingData.value = response
@@ -108,6 +117,12 @@ onMounted(() => {
               「{{ endingData?.epithet }}」
             </p>
           </div>
+        </div>
+        
+        <!-- 职业信息 -->
+        <div v-if="gameStore.profession" class="text-center mb-4">
+          <span class="text-2xl">{{ gameStore.profession.icon }}</span>
+          <span class="text-gray-300 ml-2">{{ gameStore.profession.name }}</span>
         </div>
         
         <!-- 存活天数 -->

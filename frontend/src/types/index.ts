@@ -4,6 +4,19 @@ export interface Stats {
   san: number     // 理智值
 }
 
+// 职业定义
+export interface Profession {
+  id: string
+  name: string
+  icon: string
+  description: string           // 展示给用户的描述
+  hiddenDescription: string     // 隐藏描述（影响AI剧情）
+  bonusMoney: number            // 额外金钱加成
+  bonusHp: number               // 初始HP加成
+  bonusSan: number              // 初始SAN加成
+  unlockedItems?: string[]      // 解锁的额外商品ID
+}
+
 // 背包物品
 export interface InventoryItem {
   name: string

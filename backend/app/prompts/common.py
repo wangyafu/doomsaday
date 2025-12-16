@@ -3,7 +3,7 @@
 
 所有角色共享的基础设定和工具
 """
-from app.models import Stats, InventoryItem, HistoryEntry
+from app.models import Stats, InventoryItem, HistoryEntry, Profession
 
 
 # ==================== 游戏世界观常量 ====================
@@ -231,5 +231,20 @@ def format_hidden_tags(tags: list[str]) -> str:
     if not tags:
         return "无特殊状态"
     return ", ".join(tags)
+
+
+def format_profession(profession: Profession | None) -> str:
+    """
+    格式化职业信息（供AI参考）
+    包含职业名称、描述和隐藏描述
+    """
+    if profession is None:
+        return "<profession>无职业信息</profession>"
+    
+    return f"""<profession>
+  <name>{profession.name}</name>
+  <description>{profession.description}</description>
+  <hidden_info>{profession.hidden_description}</hidden_info>
+</profession>"""
 
 

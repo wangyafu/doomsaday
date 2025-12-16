@@ -7,7 +7,7 @@ Narrator 提示词模块 - 小说家/旁白角色
 3. 设计 A/B/C/D 选项
 4. 在无危机事件时，同时输出状态更新（XML标签包裹的JSON）
 """
-from app.models import Stats, InventoryItem, HistoryEntry, Shelter
+from app.models import Stats, InventoryItem, HistoryEntry, Shelter, Profession
 from app.prompts.common import (
     GAME_WORLD_CONTEXT,
     GAME_MECHANICS_CONTEXT,
@@ -16,7 +16,8 @@ from app.prompts.common import (
     format_inventory,
     format_inventory_detailed,
     format_history,
-    format_hidden_tags
+    format_hidden_tags,
+    format_profession
 )
 
 
@@ -120,7 +121,8 @@ def build_narrator_prompt(
     inventory: list[InventoryItem],
     hidden_tags: list[str],
     history: list[HistoryEntry],
-    shelter: Shelter | None = None
+    shelter: Shelter | None = None,
+    profession: Profession | None = None
 ) -> str:
     """
     构建Narrator的用户提示词
@@ -147,6 +149,9 @@ def build_narrator_prompt(
 
 ### 时间
 末世爆发后的第 {day} 天 
+
+### 玩家职业
+{format_profession(profession)}
 
 ### 避难所
 {shelter_info}
