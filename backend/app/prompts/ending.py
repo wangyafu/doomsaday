@@ -112,8 +112,8 @@ ENDING_SYSTEM_PROMPT = f"""
 - 1-3天：1~3分
 - 4-7天：4~5分
 - 8-14天：6~7分
-- 15-30天：8~9分
-- 30天+：10分
+- 15-19天：8~9分
+- 20天+：10分
 
 ### 智慧 (0-10)
 - 基于决策质量（Judge评分平均值）
@@ -153,8 +153,8 @@ def build_ending_prompt(
     """
     full_history = format_history(history, max_days=15)
     
-    is_victory = days_survived >= 30
-    ending_type = "【通关】恭喜，你在末世中存活了30天以上！" if is_victory else "【死亡】游戏结束"
+    is_victory = days_survived >= 20
+    ending_type = "【通关】恭喜，你在末世中存活了20天，等到了军队救援！" if is_victory else "【死亡】游戏结束"
     
     return f"""
 <game_summary>

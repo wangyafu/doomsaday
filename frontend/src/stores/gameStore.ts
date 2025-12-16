@@ -24,7 +24,7 @@ export const useGameStore = defineStore('game', () => {
   const history = ref<HistoryEntry[]>([])
   
   // 金钱
-  const money = ref(10000)
+  const money = ref(6000)
   
   // 选择的避难所
   const shelter = ref<Shelter | null>(null)
@@ -49,8 +49,8 @@ export const useGameStore = defineStore('game', () => {
   // 游戏是否结束（HP 或 SAN 归零）
   const isGameOver = computed(() => stats.value.hp <= 0 || stats.value.san <= 0)
   
-  // 是否通关（存活超过30天）
-  const isVictory = computed(() => day.value > 30)
+  // 是否通关（存活超过20天）
+  const isVictory = computed(() => day.value > 20)
   
   // ==================== 方法 ====================
   
@@ -61,7 +61,7 @@ export const useGameStore = defineStore('game', () => {
     inventory.value = []
     hiddenTags.value = []
     history.value = []
-    money.value = 10000
+    money.value = 6000
     shelter.value = null
     profession.value = null
     highLightMoment.value = ''

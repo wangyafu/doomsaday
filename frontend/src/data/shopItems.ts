@@ -5,8 +5,8 @@ export const shelters: Shelter[] = [
   {
     id: 'rental',
     name: '出租屋',
-    price: 2000,
-    space: 50,
+    price: 1000,
+    space: 30,
     defense: 1,
     description: '拥挤的单间，窗外有晾衣架。适合不想花钱的赌徒。',
     hidden_discription:"1.周围人口密度极高，在前期容易遭受丧尸围堵。 2.防盗门质量较差，在壮汉持械攻击下容易破坏。 3.隔音效果较差，发出声音时会吸引丧尸。"
@@ -14,8 +14,8 @@ export const shelters: Shelter[] = [
   {
     id: 'basement',
     name: '地下室',
-    price: 4000,
-    space: 80,
+    price: 2500,
+    space: 55,
     defense: 2,
     description: '只有透气窗的阴暗水泥房，堆满箱子。压抑，易抑郁。',
     hidden_discription:"1.地下室有一定隔音效果。 2.防盗门质量较差，在壮汉持械攻击下容易破坏。"
@@ -23,8 +23,8 @@ export const shelters: Shelter[] = [
   {
     id: 'villa',
     name: '半山别墅',
-    price: 8000,
-    space: 150,
+    price: 4800,
+    space: 100,
     defense: 3,
     description: '1. 带有落地窗和围栏的豪宅。易招惹强盗。',
     hidden_discription:"1.豪宅内有游泳池，极端情况下可从中取水。 2.围栏有2m高，普通丧尸难以翻越。 3.豪宅内置图书、游戏机等，即使用户不额外购买也不缺乏娱乐设施。 "

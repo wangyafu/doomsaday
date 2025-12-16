@@ -18,7 +18,7 @@ const isRolling = ref(false)
 const previewStats = computed(() => {
   const baseHp = 100
   const baseSan = 100
-  const baseMoney = 10000
+  const baseMoney = 6000
   return {
     hp: Math.max(1, Math.min(100, baseHp + currentProfession.value.bonusHp)),
     san: Math.max(1, Math.min(100, baseSan + currentProfession.value.bonusSan)),
