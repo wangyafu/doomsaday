@@ -4,13 +4,20 @@ export interface Stats {
   san: number     // 理智值
 }
 
+// 职业标签定义
+export interface ProfessionTag {
+  name: string          // 标签名称（展示给用户）
+  description: string   // 标签解释（鼠标悬停时显示）
+}
+
 // 职业定义
 export interface Profession {
   id: string
   name: string
   icon: string
   description: string           // 展示给用户的描述
-  hiddenDescription: string     // 隐藏描述（影响AI剧情）
+  tags?: ProfessionTag[]        // 职业标签（展示给用户，不发送给AI）
+  hiddenDescription: string     // 隐藏描述（影响AI剧情，包含tags的实际效果）
   bonusMoney: number            // 额外金钱加成
   bonusHp: number               // 初始HP加成
   bonusSan: number              // 初始SAN加成

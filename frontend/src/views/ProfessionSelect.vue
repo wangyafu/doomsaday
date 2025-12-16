@@ -67,6 +67,28 @@ function confirmProfession() {
         <h3 class="text-white text-2xl font-bold mb-2">{{ currentProfession.name }}</h3>
         <p class="text-gray-300 text-sm mb-4">{{ currentProfession.description }}</p>
 
+        <!-- 职业标签 -->
+        <div v-if="currentProfession.tags?.length" class="flex flex-wrap gap-2 mb-4 justify-center">
+          <div
+            v-for="tag in currentProfession.tags"
+            :key="tag.name"
+            class="group relative"
+          >
+            <span
+              class="inline-block px-3 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs rounded-full cursor-help transition-all hover:scale-105"
+            >
+              🏷️ {{ tag.name }}
+            </span>
+            <!-- 悬停提示 -->
+            <div
+              class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 border border-purple-500"
+            >
+              {{ tag.description }}
+              <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-purple-500"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- 属性预览 -->
         <div class="grid grid-cols-3 gap-2 text-sm">
           <div class="bg-gray-700/50 rounded p-2">
