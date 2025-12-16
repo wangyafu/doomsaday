@@ -3,7 +3,6 @@ import type {
   InventoryItem,
   HistoryEntry,
   Shelter,
-  Profession,
   NarrateStateResponse,
   JudgeStateResponse,
   EndingResponse,
