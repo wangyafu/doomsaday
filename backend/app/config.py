@@ -30,10 +30,15 @@ class Settings(BaseSettings):
     
     # 应用配置
     debug: bool = False
+    environment: str = "development"  # development 或 production
     
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+    
+    def is_production(self) -> bool:
+        """判断是否为生产环境"""
+        return self.environment.lower() == "production"
     
     def get_model_config(self, role: str) -> tuple[str, str, str]:
         """

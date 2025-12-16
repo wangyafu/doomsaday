@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 from app.api_logger import log_api_call, format_request_for_log
+from app.config import get_settings
 
 from app.models import (
     NarrateRequest,
@@ -34,6 +35,9 @@ from app.prompts import (
 from app.llm_service import get_llm_service
 
 router = APIRouter(prefix="/api/game", tags=["game"])
+
+# 获取配置
+settings = get_settings()
 
 
 # ==================== 辅助函数 ====================
@@ -89,14 +93,19 @@ async def narrate_stream(request: NarrateRequest):
     
     前端需要从完整输出中解析 <state_update> 标签获取状态更新 JSON
     """
+    is_prod = settings.is_production()
+    
     logger.info("="*50)
     logger.info("[NARRATE/STREAM] 请求输入:")
     logger.info(f"  天数: {request.day}")
     logger.info(f"  状态: HP={request.stats.hp}, SAN={request.stats.san}")
-    if request.shelter:
-        logger.info(f"  避难所: {request.shelter.name}")
-    logger.info(f"  背包: {[f'{i.name}x{i.count}' for i in request.inventory]}")
-    logger.info(f"  隐藏标签: {request.hidden_tags}")
+    
+    # 开发环境打印详细信息
+    if not is_prod:
+        if request.shelter:
+            logger.info(f"  避难所: {request.shelter.name}")
+        logger.info(f"  背包: {[f'{i.name}x{i.count}' for i in request.inventory]}")
+        logger.info(f"  隐藏标签: {request.hidden_tags}")
     
     llm = get_llm_service()
     
@@ -110,7 +119,8 @@ async def narrate_stream(request: NarrateRequest):
         shelter=request.shelter
     )
     
-    logger.info(f"[NARRATE/STREAM] Prompt长度: {len(user_prompt)} 字符")
+    if not is_prod:
+        logger.info(f"[NARRATE/STREAM] Prompt长度: {len(user_prompt)} 字符")
     
     # 用于收集完整响应的容器
     full_response_chunks = []
@@ -167,14 +177,19 @@ async def judge_stream(request: JudgeRequest):
     
     前端需要从完整输出中解析 <state_update> 标签获取状态更新 JSON
     """
+    is_prod = settings.is_production()
+    
     logger.info("="*50)
     logger.info("[JUDGE/STREAM] 请求输入:")
     logger.info(f"  天数: {request.day}")
     logger.info(f"  事件上下文: {request.event_context[:100]}...")
     logger.info(f"  玩家行动: {request.action_content}")
     logger.info(f"  状态: HP={request.stats.hp}, SAN={request.stats.san}")
-    logger.info(f"  背包: {[f'{i.name}x{i.count}' for i in request.inventory]}")
-    logger.info(f"  历史记录条数: {len(request.history)}")
+    
+    # 开发环境打印详细信息
+    if not is_prod:
+        logger.info(f"  背包: {[f'{i.name}x{i.count}' for i in request.inventory]}")
+        logger.info(f"  历史记录条数: {len(request.history)}")
     
     llm = get_llm_service()
     
@@ -237,13 +252,18 @@ async def ending(request: EndingRequest) -> EndingResponse:
     AI角色：毒舌评论员/算命师
     功能：生成人设词、死因、评语和雷达图
     """
+    is_prod = settings.is_production()
+    
     # 打印请求日志
     logger.info("="*50)
     logger.info("[ENDING] 请求输入:")
     logger.info(f"  存活天数: {request.days_survived}")
     logger.info(f"  高光时刻: {request.high_light_moment}")
     logger.info(f"  最终状态: HP={request.final_stats.hp}, SAN={request.final_stats.san}")
-    logger.info(f"  最终背包: {[f'{i.name}x{i.count}' for i in request.final_inventory]}")
+    
+    # 开发环境打印详细信息
+    if not is_prod:
+        logger.info(f"  最终背包: {[f'{i.name}x{i.count}' for i in request.final_inventory]}")
     
     request_data = format_request_for_log(request)
     
