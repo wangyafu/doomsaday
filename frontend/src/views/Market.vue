@@ -251,7 +251,8 @@ onUnmounted(() => {
         >
           <div class="text-2xl mb-1">{{ item.icon }}</div>
           <div class="font-medium text-sm truncate">{{ item.name }}</div>
-          <div class="flex justify-between items-center mt-1">
+          <p class="text-xs text-white mt-1 line-clamp-2 min-h-[2rem]">{{ item.description }}</p>
+          <div class="flex justify-between items-center mt-2">
             <span class="text-yellow-500 text-sm">¥{{ item.price }}</span>
             <span class="text-gray-500 text-xs">{{ item.space }}格</span>
           </div>
@@ -300,5 +301,13 @@ onUnmounted(() => {
 <style scoped>
 .item-card:active {
   transform: scale(0.95);
+}
+
+/* 限制描述文本为2行 */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>

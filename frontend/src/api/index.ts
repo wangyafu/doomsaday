@@ -119,11 +119,16 @@ export async function* narrateStream(params: {
           if (data.type === "content" && data.text) {
             yield data.text;
           } else if (data.type === "error") {
+            // 错误事件，直接抛出
             throw new Error(data.error);
           }
           // done 事件不需要特殊处理，循环会自然结束
         } catch (e) {
-          // 忽略解析错误
+          // 如果是我们主动抛出的错误，继续向上抛出
+          if (e instanceof Error && e.message) {
+            throw e;
+          }
+          // 其他解析错误（如 JSON 格式问题）静默忽略
         }
       }
     }
@@ -349,10 +354,15 @@ export async function* judgeStream(params: {
           if (data.type === "content" && data.text) {
             yield data.text;
           } else if (data.type === "error") {
+            // 内容审核或其他错误，直接抛出
             throw new Error(data.error);
           }
         } catch (e) {
-          // 忽略解析错误
+          // 如果是我们主动抛出的错误，继续向上抛出
+          if (e instanceof Error && e.message) {
+            throw e;
+          }
+          // 其他解析错误（如 JSON 格式问题）静默忽略
         }
       }
     }
