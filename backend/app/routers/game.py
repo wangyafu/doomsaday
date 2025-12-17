@@ -33,6 +33,7 @@ from app.prompts import (
     ENDING_SYSTEM_PROMPT, build_ending_prompt
 )
 from app.llm_service import get_llm_service
+from app.moderator_service import get_moderator_service
 
 router = APIRouter(prefix="/api/game", tags=["game"])
 
@@ -191,6 +192,28 @@ async def judge_stream(request: JudgeRequest):
     if not is_prod:
         logger.info(f"  背包: {[f'{i.name}x{i.count}' for i in request.inventory]}")
         logger.info(f"  历史记录条数: {len(request.history)}")
+    
+    # 内容审核：检查用户输入是否包含违规内容
+    moderator = get_moderator_service()
+    moderation_result = await moderator.check_content(request.action_content)
+    
+    if not moderation_result.is_safe:
+        logger.warning(f"[JUDGE/STREAM] 内容审核未通过: {moderation_result.reason}")
+        
+        async def generate_error():
+            """返回审核失败的错误信息"""
+            error_message = f"您的输入包含不适宜的内容，请重新输入。原因：{moderation_result.reason}"
+            yield format_sse_event("error", {"error": error_message})
+        
+        return StreamingResponse(
+            generate_error(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            }
+        )
     
     llm = get_llm_service()
     

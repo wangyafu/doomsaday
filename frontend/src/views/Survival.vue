@@ -222,8 +222,13 @@ async function executeAction(action: string) {
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "未知错误";
     console.error("行动判定失败:", error);
-    logText.value = `判定失败: ${errorMessage}`;
+    
+    // 显示友好的错误提示
+    logText.value = `⚠️ ${errorMessage}`;
     streamDone.value = true;
+    
+    // 如果是内容审核错误，保持危机状态，让用户可以重新选择
+    // 不清除 hasCrisis 和 choices，让用户可以重新输入
   } finally {
     uiStore.setLoading(false);
   }
@@ -305,7 +310,10 @@ onMounted(() => {
         <!-- 日志区域 -->
         <div class="bg-gray-800/50 rounded-lg p-4 mb-4 min-h-[200px]">
           <!-- 日志文本（流式显示） -->
-          <div class="whitespace-pre-wrap leading-relaxed">
+          <div 
+            class="whitespace-pre-wrap leading-relaxed"
+            :class="{ 'text-yellow-400 font-medium': logText.startsWith('⚠️') }"
+          >
             {{ logText }}
             <span v-if="!streamDone" class="animate-pulse">▌</span>
           </div>

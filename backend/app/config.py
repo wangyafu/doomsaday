@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     ending_base_url: str = ""
     ending_model: str = ""
     
+    # Moderator（内容审核）专用配置
+    moderator_api_key: str = ""
+    moderator_base_url: str = ""
+    moderator_model: str = ""
+    
     # 应用配置
     debug: bool = False
     environment: str = "development"  # development 或 production
@@ -45,7 +50,7 @@ class Settings(BaseSettings):
         获取指定角色的模型配置
         
         Args:
-            role: 角色名称，可选值：narrator, judge, ending
+            role: 角色名称，可选值：narrator, judge, ending, moderator
             
         Returns:
             (api_key, base_url, model) 三元组
@@ -65,6 +70,10 @@ class Settings(BaseSettings):
             api_key = self.ending_api_key or self.openai_api_key
             base_url = self.ending_base_url or self.openai_base_url
             model = self.ending_model or self.openai_model
+        elif role == "moderator":
+            api_key = self.moderator_api_key or self.openai_api_key
+            base_url = self.moderator_base_url or self.openai_base_url
+            model = self.moderator_model or self.openai_model
         else:
             # 未知角色，使用通用配置
             api_key = self.openai_api_key
