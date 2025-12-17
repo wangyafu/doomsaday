@@ -142,14 +142,16 @@ def build_judge_narrative_prompt(
     """
     return f"""
 <context>
-## 判定情境 - 末世爆发后第 {day} 天
+## 判定情境 
 
 ### 玩家职业
 {format_profession(profession)}
 
 ### 近期经历（背景参考）
-{format_history(history, max_days=5)}
+{format_history(history)}
 
+### 当前时间
+末世爆发后第{day}天
 ### 今日事件（玩家面对的危机）
 <crisis>
 {event_context}

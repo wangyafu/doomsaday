@@ -145,8 +145,7 @@ def build_narrator_prompt(
 <current_state>
 ## 当前游戏状态
 
-### 时间
-末世爆发后的第 {day} 天 
+
 
 ### 玩家职业
 {format_profession(profession)}
@@ -157,6 +156,11 @@ def build_narrator_prompt(
 ### 避难所隐藏信息（仅供你参考，玩家不可见，可用于设计剧情）
 {shelter_hidden_info}
 
+### 最近的经历
+{format_history(history)}
+
+### 时间
+末世爆发后的第 {day} 天 
 ### 玩家属性
 {format_stats(stats)}
 
@@ -166,8 +170,6 @@ def build_narrator_prompt(
 ### 隐藏标签（影响剧情走向，玩家不可见）
 {format_hidden_tags(hidden_tags)}
 
-### 最近的经历
-{format_history(history)}
 </current_state>
 
 <instruction>
