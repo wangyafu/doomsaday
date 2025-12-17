@@ -18,10 +18,11 @@ const isRolling = ref(false)
 const previewStats = computed(() => {
   const baseHp = 100
   const baseSan = 100
-  const baseMoney = 6000
+  const baseMoney = 6500
   return {
-    hp: Math.max(1, Math.min(100, baseHp + currentProfession.value.bonusHp)),
-    san: Math.max(1, Math.min(100, baseSan + currentProfession.value.bonusSan)),
+    // 允许特殊职业（如龙王）突破100上限
+    hp: Math.max(1, baseHp + currentProfession.value.bonusHp),
+    san: Math.max(1, baseSan + currentProfession.value.bonusSan),
     money: baseMoney + currentProfession.value.bonusMoney
   }
 })

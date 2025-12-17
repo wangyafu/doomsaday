@@ -24,7 +24,7 @@ export const useGameStore = defineStore('game', () => {
   const history = ref<HistoryEntry[]>([])
   
   // 金钱
-  const money = ref(6000)
+  const money = ref(6500)
   
   // 选择的避难所
   const shelter = ref<Shelter | null>(null)
@@ -61,7 +61,7 @@ export const useGameStore = defineStore('game', () => {
     inventory.value = []
     hiddenTags.value = []
     history.value = []
-    money.value = 6000
+    money.value = 6500
     shelter.value = null
     profession.value = null
     highLightMoment.value = ''
@@ -73,6 +73,7 @@ export const useGameStore = defineStore('game', () => {
     // 应用职业加成
     money.value += p.bonusMoney
     // 允许职业加成突破100上限（龙王等特殊职业）
+    // 注意：这里不限制上限，允许超过100
     stats.value.hp = Math.max(1, stats.value.hp + p.bonusHp)
     stats.value.san = Math.max(1, stats.value.san + p.bonusSan)
   }
@@ -107,10 +108,12 @@ export const useGameStore = defineStore('game', () => {
   // 更新状态
   function updateStats(changes: Partial<Stats>) {
     if (changes.hp !== undefined) {
-      stats.value.hp = Math.max(0, Math.min(100, stats.value.hp + changes.hp))
+      // 允许HP超过100（职业加成），但不能低于0
+      stats.value.hp = Math.max(0, stats.value.hp + changes.hp)
     }
     if (changes.san !== undefined) {
-      stats.value.san = Math.max(0, Math.min(100, stats.value.san + changes.san))
+      // 允许SAN超过100（职业加成），但不能低于0
+      stats.value.san = Math.max(0, stats.value.san + changes.san)
     }
   }
   

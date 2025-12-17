@@ -4,9 +4,14 @@ import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore'
 import { ending } from '@/api'
 import type { EndingResponse } from '@/types'
+import wechatQrcode from '@/assets/微信收款码.png'
+import alipayQrcode from '@/assets/支付宝收款码.jpg'
 
 const router = useRouter()
 const gameStore = useGameStore()
+
+// 支持作者弹窗
+const showDonation = ref(false)
 
 // 结局数据
 const endingData = ref<EndingResponse | null>(null)
@@ -183,6 +188,51 @@ onMounted(() => {
         </div>
       </div>
       
+      <!-- 支持作者 -->
+      <div class="mb-6 text-center">
+        <button 
+          class="px-4 py-2 text-sm text-gray-400 hover:text-red-500 transition-colors duration-300"
+          @click="showDonation = !showDonation"
+        >
+          {{ showDonation ? '收起' : '❤️ 喜欢这个游戏？支持作者' }}
+        </button>
+        
+        <transition name="fade">
+          <div v-if="showDonation" class="mt-4 p-6 bg-gray-900 border border-gray-700 rounded-lg">
+            <p class="text-gray-300 mb-4">感谢您的支持！这将助力我更长久地运营末世模拟器，也会激励我打造更多有趣又有用的AI产品。 🙏</p>
+            
+            <!-- 收款码容器 -->
+            <div class="flex justify-center gap-4 mb-4">
+              <!-- 微信收款码 -->
+              <div class="text-center">
+                <div class="w-32 h-32 bg-white rounded-lg p-2 mb-2">
+                  <img 
+                    :src="wechatQrcode" 
+                    alt="微信收款码" 
+                    class="w-full h-full object-contain"
+                  />
+                </div>
+                <span class="text-xs text-gray-400">微信</span>
+              </div>
+              
+              <!-- 支付宝收款码 -->
+              <div class="text-center">
+                <div class="w-32 h-32 bg-white rounded-lg p-2 mb-2">
+                  <img 
+                    :src="alipayQrcode" 
+                    alt="支付宝收款码" 
+                    class="w-full h-full object-contain"
+                  />
+                </div>
+                <span class="text-xs text-gray-400">支付宝</span>
+              </div>
+            </div>
+            
+            <p class="text-xs text-gray-500">扫码即可支持，金额随意 ☕</p>
+          </div>
+        </transition>
+      </div>
+      
       <!-- 操作按钮 -->
       <div class="space-y-3">
         <button 
@@ -201,6 +251,33 @@ onMounted(() => {
           🔄 重新开始
         </button>
       </div>
+      
+      <!-- 联系开发者 -->
+      <div class="mt-6 text-center">
+        <p class="text-gray-500 text-sm mb-2">联系开发者</p>
+        <a 
+          href="https://www.xiaohongshu.com/user/profile/635f85b8000000001901fe43"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 
+                 text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-300 
+                 hover:scale-105 shadow-lg hover:shadow-red-500/50"
+        >
+          <span class="text-lg">📕</span>
+          <span class="font-medium">小红书</span>
+        </a>
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+</style>
