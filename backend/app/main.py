@@ -4,7 +4,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import game
+from app.routers import game, archive
 
 # 创建应用实例
 app = FastAPI(
@@ -24,6 +24,7 @@ app.add_middleware(
 
 # 注册路由
 app.include_router(game.router)
+app.include_router(archive.router)
 
 
 @app.get("/")

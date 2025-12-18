@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore'
-import { ending } from '@/api'
+import { ending, submitArchive } from '@/api'
 import type { EndingResponse } from '@/types'
 import wechatQrcode from '@/assets/微信收款码.png'
 import alipayQrcode from '@/assets/支付宝收款码.jpg'
@@ -16,6 +16,13 @@ const showDonation = ref(false)
 // 结局数据
 const endingData = ref<EndingResponse | null>(null)
 const isLoading = ref(true)
+
+// 档案分享相关
+const showArchiveModal = ref(false)
+const nickname = ref('')
+const isSubmitting = ref(false)
+const submitSuccess = ref(false)
+const submitError = ref('')
 
 // 雷达图标签
 const radarLabels = ['战斗力', '生存力', '智慧', '运气', '人性']
@@ -86,6 +93,41 @@ async function generateShareImage() {
 function restart() {
   gameStore.resetGame()
   router.push('/')
+}
+
+// 打开档案分享弹窗
+function openArchiveModal() {
+  showArchiveModal.value = true
+  submitSuccess.value = false
+  submitError.value = ''
+}
+
+// 提交到末世档案
+async function submitToArchive() {
+  if (!nickname.value.trim() || !endingData.value) return
+  
+  isSubmitting.value = true
+  submitError.value = ''
+  
+  try {
+    await submitArchive({
+      nickname: nickname.value.trim(),
+      epithet: endingData.value.epithet,
+      days_survived: gameStore.day,
+      is_victory: isVictory.value,
+      cause_of_death: endingData.value.cause_of_death,
+      comment: endingData.value.comment,
+      radar_chart: endingData.value.radar_chart,
+      profession_name: gameStore.profession?.name || null,
+      profession_icon: gameStore.profession?.icon || null
+    })
+    submitSuccess.value = true
+  } catch (error) {
+    console.error('提交档案失败:', error)
+    submitError.value = '提交失败，请稍后重试'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 onMounted(() => {
@@ -244,6 +286,14 @@ onMounted(() => {
         </button>
         
         <button 
+          class="w-full py-4 bg-purple-600 rounded-lg font-bold
+                 hover:bg-purple-500 transition-all"
+          @click="openArchiveModal"
+        >
+          📜 分享到末世档案
+        </button>
+        
+        <button 
           class="w-full py-4 bg-gray-800 rounded-lg font-bold
                  hover:bg-gray-700 transition-all"
           @click="restart"
@@ -251,6 +301,71 @@ onMounted(() => {
           🔄 重新开始
         </button>
       </div>
+      
+      <!-- 档案分享弹窗 -->
+      <teleport to="body">
+        <transition name="fade">
+          <div 
+            v-if="showArchiveModal" 
+            class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+            @click.self="showArchiveModal = false"
+          >
+            <div class="bg-gray-900 rounded-lg p-6 w-full max-w-sm">
+              <h3 class="text-xl font-bold text-center mb-4">📜 分享到末世档案</h3>
+              
+              <template v-if="!submitSuccess">
+                <p class="text-gray-400 text-sm text-center mb-4">
+                  将你的结局分享到首页，让其他幸存者见证你的末日传奇
+                </p>
+                
+                <input 
+                  v-model="nickname"
+                  type="text"
+                  placeholder="输入你的昵称（最多20字）"
+                  maxlength="20"
+                  class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg 
+                         text-white placeholder-gray-500 focus:border-red-500 focus:outline-none mb-4"
+                />
+                
+                <p v-if="submitError" class="text-red-500 text-sm text-center mb-4">
+                  {{ submitError }}
+                </p>
+                
+                <div class="flex gap-3">
+                  <button 
+                    class="flex-1 py-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-all"
+                    @click="showArchiveModal = false"
+                  >
+                    取消
+                  </button>
+                  <button 
+                    class="flex-1 py-3 bg-purple-600 rounded-lg font-bold
+                           hover:bg-purple-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="!nickname.trim() || isSubmitting"
+                    @click="submitToArchive"
+                  >
+                    {{ isSubmitting ? '提交中...' : '确认分享' }}
+                  </button>
+                </div>
+              </template>
+              
+              <template v-else>
+                <div class="text-center">
+                  <p class="text-4xl mb-4">🎉</p>
+                  <p class="text-green-400 mb-4">分享成功！</p>
+                  <p class="text-gray-400 text-sm mb-6">你的末日传奇已被记录在档案中</p>
+                  <button 
+                    class="w-full py-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-all"
+                    @click="showArchiveModal = false"
+                  >
+                    关闭
+                  </button>
+                </div>
+              </template>
+            </div>
+          </div>
+        </transition>
+      </teleport>
       
       <!-- 联系开发者 -->
       <div class="mt-6 text-center">

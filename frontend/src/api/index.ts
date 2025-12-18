@@ -6,6 +6,7 @@ import type {
   NarrateStateResponse,
   JudgeStateResponse,
   EndingResponse,
+  ArchiveRecord,
 } from "@/types";
 
 // 根据环境变量设置 API 基础路径
@@ -413,6 +414,49 @@ export async function ending(params: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
   });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+
+/**
+ * 提交结局到末世档案
+ */
+export async function submitArchive(params: {
+  nickname: string;
+  epithet: string;
+  days_survived: number;
+  is_victory: boolean;
+  cause_of_death: string | null;
+  comment: string;
+  radar_chart: number[];
+  profession_name: string | null;
+  profession_icon: string | null;
+}): Promise<ArchiveRecord> {
+  logRequest("POST /archive/submit", params);
+  
+  const response = await fetch(`${API_BASE}/archive/submit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * 获取末世档案列表
+ */
+export async function getArchives(limit: number = 20): Promise<ArchiveRecord[]> {
+  const response = await fetch(`${API_BASE}/archive/list?limit=${limit}`);
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);

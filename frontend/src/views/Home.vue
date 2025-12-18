@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore'
+import { getArchives } from '@/api'
+import type { ArchiveRecord } from '@/types'
 import wechatQrcode from '@/assets/微信收款码.png'
 import alipayQrcode from '@/assets/支付宝收款码.jpg'
 
 const router = useRouter()
 const gameStore = useGameStore()
 const showDonation = ref(false)
+
+// 末世档案
+const archives = ref<ArchiveRecord[]>([])
+const isLoadingArchives = ref(true)
 
 function startGame() {
   gameStore.resetGame()
@@ -19,6 +25,21 @@ function continueGame() {
     router.push('/survival')
   }
 }
+
+// 加载档案列表
+async function loadArchives() {
+  try {
+    archives.value = await getArchives(10)
+  } catch (error) {
+    console.error('加载档案失败:', error)
+  } finally {
+    isLoadingArchives.value = false
+  }
+}
+
+onMounted(() => {
+  loadArchives()
+})
 </script>
 
 <template>
@@ -85,6 +106,84 @@ function continueGame() {
     
     <!-- 底部提示 -->
     <p class="mt-8 text-gray-600 text-sm">点击选择末日场景开始游戏</p>
+    
+    <!-- 末世档案 -->
+    <div v-if="archives.length > 0" class="mt-12 w-full max-w-md">
+      <h2 class="text-xl font-bold text-gray-400 mb-4 text-center">📜 末世档案</h2>
+      <div class="space-y-4">
+        <div 
+          v-for="archive in archives" 
+          :key="archive.id"
+          class="archive-card bg-gray-900 border border-gray-800 rounded-lg p-5 hover:border-red-900 transition-all"
+        >
+          <!-- 头部：昵称 + 状态 -->
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span v-if="archive.profession_icon" class="text-xl">{{ archive.profession_icon }}</span>
+              <span class="font-bold text-white text-lg">{{ archive.nickname }}</span>
+            </div>
+            <span 
+              class="px-3 py-1 text-sm rounded-full font-bold"
+              :class="archive.is_victory ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'"
+            >
+              {{ archive.is_victory ? '🎉 通关' : '💀 阵亡' }}
+            </span>
+          </div>
+          
+          <!-- 人设词 -->
+          <div class="text-center mb-4">
+            <div class="inline-block bg-red-900/30 px-4 py-2 rounded-lg">
+              <p class="text-xl font-bold text-red-400">「{{ archive.epithet }}」</p>
+            </div>
+          </div>
+          
+          <!-- 职业 + 存活天数 -->
+          <div class="flex items-center justify-center gap-6 mb-4">
+            <div v-if="archive.profession_name" class="text-center">
+              <p class="text-gray-500 text-xs">职业</p>
+              <p class="text-white">{{ archive.profession_name }}</p>
+            </div>
+            <div class="text-center">
+              <p class="text-gray-500 text-xs">存活天数</p>
+              <p class="text-3xl font-bold text-white">{{ archive.days_survived }}</p>
+            </div>
+          </div>
+          
+          <!-- 死因 -->
+          <div v-if="archive.cause_of_death" class="text-center mb-4">
+            <p class="text-gray-500 text-xs">死因</p>
+            <p class="text-red-400 text-sm">{{ archive.cause_of_death }}</p>
+          </div>
+          
+          <!-- 毒舌评语 -->
+          <div class="bg-gray-800/50 rounded-lg p-3 mb-4">
+            <p class="text-gray-300 text-sm italic">"{{ archive.comment }}"</p>
+          </div>
+          
+          <!-- 雷达图（简化柱状图） -->
+          <div class="grid grid-cols-5 gap-1">
+            <div 
+              v-for="(value, index) in archive.radar_chart" 
+              :key="index"
+              class="text-center"
+            >
+              <div class="h-12 bg-gray-800 rounded relative overflow-hidden">
+                <div 
+                  class="absolute bottom-0 left-0 right-0 bg-red-600/80 transition-all"
+                  :style="{ height: `${(value || 0) * 10}%` }"
+                ></div>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">{{ ['战斗', '生存', '智慧', '运气', '人性'][index] }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 档案加载中 -->
+    <div v-else-if="isLoadingArchives" class="mt-12 text-gray-500 text-sm">
+      正在加载末世档案...
+    </div>
     
     <!-- 支持作者 -->
     <div class="mt-12 text-center">

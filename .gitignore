@@ -18,6 +18,9 @@ backend/.venv
 # API logs
 backend/logs/
 
+# 档案数据
+backend/data/archives.json
+
 # Environment files
 .env
 backend/.env

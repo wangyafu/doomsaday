@@ -101,3 +101,18 @@ export interface EndingResponse {
   comment: string
   radar_chart: number[]
 }
+
+// 末世生存档案
+export interface ArchiveRecord {
+  id: string
+  nickname: string
+  epithet: string
+  days_survived: number
+  is_victory: boolean
+  cause_of_death: string | null
+  comment: string
+  radar_chart: number[]
+  profession_name: string | null
+  profession_icon: string | null
+  created_at: string
+}
