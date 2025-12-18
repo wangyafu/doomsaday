@@ -4,7 +4,7 @@ import { useGameStore } from '@/stores/gameStore'
 import wechatQrcode from '@/assets/微信一元收款码.png'
 import alipayQrcode from '@/assets/支付宝一元收款码.jpg'
 
-const props = defineProps<{
+defineProps<{
   show: boolean
 }>()
 
