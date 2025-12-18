@@ -9,7 +9,7 @@ export const shelters: Shelter[] = [
     space: 30,
     defense: 1,
     description: '拥挤的单间，窗外有晾衣架。适合不想花钱的赌徒。',
-    hidden_discription:"1.周围人口密度极高，在前期容易遭受丧尸围堵。 2.防盗门质量较差，在壮汉持械攻击下容易破坏。 3.隔音效果较差，发出声音时会吸引丧尸。"
+    hidden_discription: "1.周围人口密度极高，在前期容易遭受丧尸围堵。 2.防盗门质量较差，在壮汉持械攻击下容易破坏。 3.隔音效果较差，发出声音时会吸引丧尸。"
   },
   {
     id: 'basement',
@@ -18,7 +18,7 @@ export const shelters: Shelter[] = [
     space: 55,
     defense: 2,
     description: '只有透气窗的阴暗水泥房，堆满箱子。压抑，易抑郁。',
-    hidden_discription:"1.地下室有一定隔音效果。 2.防盗门质量较差，在壮汉持械攻击下容易破坏。"
+    hidden_discription: "1.地下室有一定隔音效果。 2.防盗门质量较差，在壮汉持械攻击下容易破坏。"
   },
   {
     id: 'villa',
@@ -27,7 +27,7 @@ export const shelters: Shelter[] = [
     space: 100,
     defense: 3,
     description: '带有落地窗和围栏的豪宅。可能会招惹强盗。',
-    hidden_discription:"1.豪宅内有游泳池，极端情况下可从中取水。 2.围栏有2m高，普通丧尸难以翻越。 3.豪宅内置图书、游戏机等，即使用户不额外购买也不缺乏娱乐设施。 "
+    hidden_discription: "1.豪宅内有游泳池，极端情况下可从中取水。 2.围栏有2m高，普通丧尸难以翻越。 3.豪宅内置图书、游戏机等，即使用户不额外购买也不缺乏娱乐设施。 "
   }
 ]
 
@@ -74,7 +74,7 @@ export const shopItems: ShopItem[] = [
     icon: '🍜',
     hidden: '每日消耗1份。满足一天食物需求。干啃时SAN+1（比压缩饼干好）。有热水泡时SAN+5（幸福感爆棚）。需配合水源。'
   },
-  
+
   // 防御/战斗
   {
     id: 'bat',
@@ -116,7 +116,7 @@ export const shopItems: ShopItem[] = [
     icon: '🎯',
     hidden: '配合霰弹枪使用，每次射击消耗1发。末世后无法补充，极其珍贵。可用于交易，价值很高。'
   },
-  
+
   // 医疗
   {
     id: 'bandage',
@@ -148,7 +148,7 @@ export const shopItems: ShopItem[] = [
     icon: '🏥',
     hidden: '治疗效果：可处理重伤（HP损失>20），HP+30~+50。能处理骨折、深度撕裂等严重外伤。使用需要一定医疗知识，否则效果减半。移除<重伤>标签。'
   },
-  
+
   // 情绪价值
   {
     id: 'cat',
@@ -209,5 +209,19 @@ export const shopItems: ShopItem[] = [
     description: '法国波尔多红酒。末世也要保持体面，醉一场能忘掉很多恐惧。',
     icon: '🍷',
     hidden: '情绪效果：饮用时SAN+30（醉酒忘忧）。醉酒状态下判断力下降，可能做出冒险决策。可用于社交，提升与其他幸存者的关系。过量饮用可能导致第二天HP-5（宿醉）。'
+  }
+]
+
+// 支持者专属商品
+export const supporterItems: ShopItem[] = [
+  {
+    id: 'trust_can',
+    name: '信任罐头',
+    price: 30,
+    space: 1,
+    category: 'food',
+    description: '来自开发者的馈赠。金色包装，打开后散发着家的味道。',
+    icon: '🥇',
+    hidden: '满足一天食物需求。进食后 HP+5, SAN+10（信任的力量）。可与其他幸存者分享以建立友谊。'
   }
 ]

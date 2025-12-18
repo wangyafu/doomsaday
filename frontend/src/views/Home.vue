@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore'
+import PaymentModal from '@/components/PaymentModal.vue'
 import { getArchives } from '@/api'
 import type { ArchiveRecord } from '@/types'
 import wechatQrcode from '@/assets/微信收款码.png'
@@ -10,13 +11,47 @@ import alipayQrcode from '@/assets/支付宝收款码.jpg'
 const router = useRouter()
 const gameStore = useGameStore()
 const showDonation = ref(false)
+const showPaymentModal = ref(false)
 
 // 末世档案
 const archives = ref<ArchiveRecord[]>([])
 const isLoadingArchives = ref(true)
 
-function startGame() {
+function handleStartGame() {
+  gameStore.checkDailyReset()
+  
+  // 1. 如果是支持者，直接开始
+  if (gameStore.is_supporter) {
+    executeStart()
+    return
+  }
+
+  // 2. 如果游玩次数 < 3，计数并开始
+  if (gameStore.daily_play_count < 3) {
+    gameStore.incrementPlayCount()
+    executeStart()
+    return
+  }
+
+  // 3. 达到限制，弹出付费框
+  showPaymentModal.value = true
+}
+
+function onPaymentConfirm() {
+  showPaymentModal.value = false
+  executeStart()
+}
+
+function onPaymentClose() {
+  showPaymentModal.value = false
+  // 允许“白嫖”，计数并开始
+  gameStore.incrementPlayCount()
+  executeStart()
+}
+
+function executeStart() {
   gameStore.resetGame()
+  // 信任罐头现在通过 Market 界面选购，不再直接发放
   router.push('/rebirth')
 }
 
@@ -53,6 +88,13 @@ onMounted(() => {
         末世模拟器
       </h1>
       <p class="text-xl text-gray-400">丧尸围城篇</p>
+      
+      <!-- 支持者徽章 -->
+      <div v-if="gameStore.is_supporter" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-yellow-600/20 border border-yellow-600 rounded-full">
+        <span class="text-lg">⭐</span>
+        <span class="text-yellow-500 font-bold text-sm">今日支持者</span>
+        <span class="text-xs text-yellow-600/70">无限畅玩已激活</span>
+      </div>
     </div>
     
     <!-- 世界观选择卡片 -->
@@ -61,7 +103,7 @@ onMounted(() => {
       <div 
         class="scenario-card bg-gray-900 border-2 border-red-600 rounded-lg p-6 cursor-pointer
                hover:bg-gray-800 transition-all duration-300 hover:scale-105"
-        @click="startGame"
+        @click="handleStartGame"
       >
         <div class="flex items-center gap-4">
           <span class="text-4xl">🧟</span>
@@ -245,6 +287,13 @@ onMounted(() => {
         <span class="font-medium">小红书</span>
       </a>
     </div>
+
+    <!-- 支付弹窗 -->
+    <PaymentModal 
+      :show="showPaymentModal" 
+      @close="onPaymentClose"
+      @confirm="onPaymentConfirm"
+    />
   </div>
 </template>
 

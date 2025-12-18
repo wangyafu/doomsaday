@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore'
-import { shelters, shopItems } from '@/data/shopItems'
+import { shelters, shopItems, supporterItems } from '@/data/shopItems'
 import { professionItems } from '@/data/professions'
 import type { ShopItem, Shelter } from '@/types'
 
@@ -19,9 +19,14 @@ const unlockedProfessionItems = computed(() => {
     .filter(item => item !== undefined) as ShopItem[]
 })
 
-// 合并基础商品和职业解锁商品
+// 合并基础商品、职业解锁商品和支持者专属商品
 const allShopItems = computed(() => {
-  return [...shopItems, ...unlockedProfessionItems.value]
+  const items = [...shopItems, ...unlockedProfessionItems.value]
+  // 支持者可以看到额外的专属商品
+  if (gameStore.is_supporter) {
+    items.push(...supporterItems)
+  }
+  return items
 })
 
 // 倒计时（3分钟 = 180秒）

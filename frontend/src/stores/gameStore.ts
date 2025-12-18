@@ -31,6 +31,14 @@ export const useGameStore = defineStore('game', () => {
   
   // 选择的职业
   const profession = ref<Profession | null>(null)
+
+  // ==================== 商业化状态 ====================
+  // 是否已赞助
+  const is_supporter = ref(false)
+  // 每日游玩次数
+  const daily_play_count = ref(0)
+  // 上次游玩日期 (YYYY-MM-DD)
+  const last_play_date = ref('')
   
   // 当前背包已用空间
   const usedSpace = computed(() => {
@@ -65,6 +73,26 @@ export const useGameStore = defineStore('game', () => {
     shelter.value = null
     profession.value = null
     highLightMoment.value = ''
+  }
+
+  // 检查并重置每日次数
+  function checkDailyReset() {
+    const today = new Date().toISOString().split('T')[0]
+    if (last_play_date.value !== today) {
+      daily_play_count.value = 0
+      last_play_date.value = today
+    }
+  }
+
+  // 增加游玩次数
+  function incrementPlayCount() {
+    checkDailyReset()
+    daily_play_count.value++
+  }
+
+  // 设置支持者身份
+  function setSupporter(value: boolean) {
+    is_supporter.value = value
   }
   
   // 选择职业（应用职业加成）
@@ -173,6 +201,13 @@ export const useGameStore = defineStore('game', () => {
     isGameOver,
     isVictory,
     nextDay,
+    // 商业化相关
+    is_supporter,
+    daily_play_count,
+    last_play_date,
+    checkDailyReset,
+    incrementPlayCount,
+    setSupporter,
     // 方法
     resetGame,
     selectProfession,
