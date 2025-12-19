@@ -44,30 +44,40 @@ function handleCancel() {
 <template>
   <transition name="modal-fade">
     <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
-      <div class="w-full max-w-md bg-gray-900 border-2 border-yellow-600 rounded-lg overflow-hidden shadow-[0_0_30px_rgba(202,138,4,0.3)]">
+      <div class="w-full max-w-md max-h-[90vh] overflow-y-auto bg-gray-900 border-2 border-yellow-600 rounded-lg shadow-[0_0_30px_rgba(202,138,4,0.3)]">
         <!-- 头部 -->
-        <div class="bg-yellow-600 p-3 flex items-center gap-2">
+        <div class="bg-yellow-600 p-3 flex items-center gap-2 sticky top-0 z-10">
           <span class="text-xl">⚠️</span>
-          <h2 class="text-black font-bold text-lg tracking-wider">来自开发者的紧急通讯</h2>
+          <h2 class="text-black font-bold text-lg tracking-wider flex-1">来自开发者的紧急通讯</h2>
+          <!-- 关闭按钮 -->
+          <button 
+            @click="handleCancel"
+            class="w-8 h-8 flex items-center justify-center text-black/70 hover:text-black hover:bg-yellow-500 rounded-full transition-all"
+            :disabled="isVerifying || showSuccess"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         <!-- 内容区 -->
-        <div class="p-6 space-y-4">
-          <div class="text-gray-300 space-y-3 leading-relaxed">
-            <p class="font-bold text-yellow-500">幸存者，你已连续挑战 3 次。</p>
-            <p class="text-sm">维持这个 AI 世界的运转并不免费。为了让 Deepseek 生成真实的求生反馈，每局需燃烧约 <span class="text-red-500 font-mono">0.156元</span> 的API服务成本。</p>
-            <p class="text-sm italic border-l-2 border-gray-700 pl-3 py-1">
-              我是独立开发者，正在自费维持这个世界。如果你觉得这个游戏有价值，请投出一张“信任票”。
+        <div class="p-4 space-y-3">
+          <div class="text-gray-300 space-y-2 leading-relaxed">
+            <p class="font-bold text-yellow-500 text-sm">幸存者，你已连续挑战 3 次。</p>
+            <p class="text-xs">维持这个 AI 世界的运转并不免费。为了让 Deepseek 生成真实的求生反馈，每局需燃烧约 <span class="text-red-500 font-mono">0.156元</span> 的API服务成本。</p>
+            <p class="text-xs italic border-l-2 border-gray-700 pl-3 py-1">
+              我是独立开发者，正在自费维持这个世界。如果你觉得这个游戏有价值，请投出一张"信任票"。
             </p>
-            <div class="text-center py-2">
-              <p class="text-xl font-bold text-white">只需 <span class="text-yellow-500 text-2xl">￥1.00</span></p>
+            <div class="text-center py-1">
+              <p class="text-lg font-bold text-white">只需 <span class="text-yellow-500 text-xl">￥1.00</span></p>
               <p class="text-xs text-gray-500">(相当于分担 6 局API费用)</p>
             </div>
-            <p class="text-sm text-center font-bold text-green-500">今日无限畅玩 + 🎒【信任物资包】</p>
+            <p class="text-xs text-center font-bold text-green-500">今日无限畅玩 + 🎒【信任物资包】</p>
           </div>
 
           <!-- 支付方式切换 -->
-          <div class="flex justify-center gap-4 mb-2">
+          <div class="flex justify-center gap-4">
             <button 
               @click="paymentMethod = 'wechat'"
               :class="['px-3 py-1 text-xs rounded transition-all', paymentMethod === 'wechat' ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-500']"
@@ -83,9 +93,9 @@ function handleCancel() {
           </div>
 
           <!-- 收款码展示区 -->
-          <div class="flex justify-center py-4 bg-black/40 rounded-lg">
+          <div class="flex justify-center py-3 bg-black/40 rounded-lg">
             <div class="text-center">
-              <div class="w-56 h-56 bg-white p-2 rounded-lg mb-2 shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+              <div class="w-40 h-40 sm:w-48 sm:h-48 bg-white p-1.5 rounded-lg mb-2 shadow-[0_0_15px_rgba(255,255,255,0.1)]">
                 <img 
                   v-if="paymentMethod === 'wechat'"
                   :src="wechatQrcode" 
