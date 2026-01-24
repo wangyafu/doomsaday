@@ -1,8 +1,4 @@
-"""
-冰河末世 API 路由
-
-包含：批量剧情生成、行动判定、结局结算
-"""
+import logging
 import json
 from typing import Optional
 from fastapi import APIRouter
@@ -11,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.config import get_settings
 from app.llm_service import get_llm_service
+from app.api_logger import log_api_call, format_request_for_log
 from app.prompts.ice_age_narrator import (
     ICE_AGE_NARRATOR_SYSTEM_PROMPT,
     build_ice_age_narrator_prompt
@@ -29,6 +26,8 @@ router = APIRouter(prefix="/api/ice-age", tags=["ice-age"])
 
 settings = get_settings()
 
+# 配置日志
+logger = logging.getLogger(__name__)
 
 # ==================== 请求模型 ====================
 
@@ -101,6 +100,15 @@ async def narrate_batch_stream(request: IceAgeNarrateRequest):
     
     返回JSON格式的多天数据
     """
+    logger.info("="*50)
+    logger.info("[ICE_AGE/NARRATE] 请求输入:")
+    logger.info(f"  开始天数: {request.start_day}")
+    logger.info(f"  生成天数: {request.days_to_generate}")
+    logger.info(f"  状态: HP={request.stats.hp}, SAN={request.stats.san}")
+    
+    if not settings.is_production():
+         logger.info(f"  背包: {[f'{i.name}x{i.count}' for i in request.inventory]}")
+
     llm_service = get_llm_service()
     
     # 构建提示词
@@ -115,6 +123,10 @@ async def narrate_batch_stream(request: IceAgeNarrateRequest):
         talents=request.talents
     )
     
+    # 用于收集完整响应
+    full_response_chunks = []
+    request_data = format_request_for_log(request)
+    
     async def generate():
         try:
             full_text = ""
@@ -124,11 +136,19 @@ async def narrate_batch_stream(request: IceAgeNarrateRequest):
                 temperature=0.8
             ):
                 full_text += chunk
+                full_response_chunks.append(chunk)
                 yield format_sse_event("content", {"text": chunk})
             
             yield format_sse_event("done", {"full_text": full_text})
             
+            # 记录日志
+            full_response = "".join(full_response_chunks)
+            log_api_call("ice-age/narrate-batch", request_data, full_response)
+            logger.info("[ICE_AGE/NARRATE] 完成")
+            
         except Exception as e:
+            logger.error(f"[ICE_AGE/NARRATE] 错误: {e}")
+            log_api_call("ice-age/narrate-batch", request_data, error=str(e))
             yield format_sse_event("error", {"error": str(e)})
     
     return StreamingResponse(
@@ -149,6 +169,11 @@ async def judge_stream(request: IceAgeJudgeRequest):
     """
     行动判定 - 流式输出
     """
+    logger.info("="*50)
+    logger.info("[ICE_AGE/JUDGE] 请求输入:")
+    logger.info(f"  天数: {request.day}")
+    logger.info(f"  行动: {request.action_content}")
+    
     llm_service = get_llm_service()
     
     import random
@@ -165,6 +190,10 @@ async def judge_stream(request: IceAgeJudgeRequest):
         luck_value=luck_value
     )
     
+    full_response_chunks = []
+    request_data = format_request_for_log(request)
+    request_data['luck_value'] = luck_value # 记录运气值
+    
     async def generate():
         try:
             full_text = ""
@@ -174,11 +203,19 @@ async def judge_stream(request: IceAgeJudgeRequest):
                 temperature=0.7
             ):
                 full_text += chunk
+                full_response_chunks.append(chunk)
                 yield format_sse_event("content", {"text": chunk})
             
             yield format_sse_event("done", {"full_text": full_text})
             
+            # 记录日志
+            full_response = "".join(full_response_chunks)
+            log_api_call("ice-age/judge", request_data, full_response)
+            logger.info("[ICE_AGE/JUDGE] 完成")
+            
         except Exception as e:
+            logger.error(f"[ICE_AGE/JUDGE] 错误: {e}")
+            log_api_call("ice-age/judge", request_data, error=str(e))
             yield format_sse_event("error", {"error": str(e)})
     
     return StreamingResponse(
@@ -199,7 +236,13 @@ async def ending(request: IceAgeEndingRequest):
     """
     结局评价 - 非流式
     """
+    logger.info("="*50)
+    logger.info("[ICE_AGE/ENDING] 请求输入:")
+    logger.info(f"  存活天数: {request.days_survived}")
+    logger.info(f"  胜利: {request.is_victory}")
+    
     llm_service = get_llm_service()
+    request_data = format_request_for_log(request)
     
     user_prompt = build_ice_age_ending_prompt(
         days_survived=request.days_survived,
@@ -216,6 +259,10 @@ async def ending(request: IceAgeEndingRequest):
             user_prompt=user_prompt,
             temperature=0.8
         )
+        
+        # 记录日志
+        log_api_call("ice-age/ending", request_data, response)
+        logger.info("[ICE_AGE/ENDING] 完成")
         
         # 尝试解析JSON
         try:
@@ -242,6 +289,8 @@ async def ending(request: IceAgeEndingRequest):
             }
             
     except Exception as e:
+        logger.error(f"[ICE_AGE/ENDING] 错误: {e}")
+        log_api_call("ice-age/ending", request_data, error=str(e))
         return {
             "cause_of_death": str(e) if not request.is_victory else None,
             "epithet": "系统错误",

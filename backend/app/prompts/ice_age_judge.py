@@ -6,6 +6,10 @@
 2. 生成判定结果叙事
 3. 计算状态变化
 """
+from app.prompts.ice_age_common import (
+    format_ice_age_inventory,
+    format_ice_age_talents
+)
 
 ICE_AGE_JUDGE_SYSTEM_PROMPT = """
 <role>
@@ -68,13 +72,8 @@ def build_ice_age_judge_prompt(
 ) -> str:
     """构建冰河末世Judge的用户提示词"""
     
-    inventory_str = "空" if not inventory else "\n".join(
-        f"- {item.get('name', '?')} x{item.get('count', 1)}" for item in inventory
-    )
-    
-    talents_str = "无" if not talents else ", ".join(
-        t.get('name', '未知') for t in talents
-    )
+    inventory_str = format_ice_age_inventory(inventory)
+    talents_str = format_ice_age_talents(talents)
     
     return f"""
 <context>

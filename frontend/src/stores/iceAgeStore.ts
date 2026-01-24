@@ -117,7 +117,7 @@ export const useIceAgeStore = defineStore('iceAge', () => {
     const isGameOver = computed(() => stats.value.hp <= 0 || stats.value.san <= 0)
 
     // 是否通关（存活超过50天）
-    const isVictory = computed(() => day.value > 50)
+    const isVictory = computed(() => day.value > 40)
 
     // 当前气温（根据天数计算）
     // 第1天约10°C → 第10天0°C → 第20天-30°C → 第30天后稳定-40°C

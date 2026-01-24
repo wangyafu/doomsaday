@@ -415,7 +415,7 @@ onMounted(async () => {
             </span>
           </div>
           <span class="text-xs text-gray-400">
-            🏆 还需 <span class="text-yellow-400 font-bold">{{ Math.max(0, 51 - iceAgeStore.day) }}</span> 天
+            🏆 还需 <span class="text-yellow-400 font-bold">{{ Math.max(0, 41 - iceAgeStore.day) }}</span> 天
           </span>
         </div>
       </div>

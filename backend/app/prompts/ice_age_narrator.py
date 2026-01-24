@@ -7,63 +7,15 @@
 3. 设计危机事件的 A/B/C/D 选项
 4. 输出每天的状态更新（气温、HP、SAN、物品变化）
 """
-from app.models import Stats, InventoryItem, HistoryEntry
+from app.models import Stats, InventoryItem
 from typing import Any
-
-
-# ==================== 世界观设定 ====================
-
-ICE_AGE_WORLD_CONTEXT = """
-<world>
-## 世界观：冰河末世
-
-### 背景
-全球突发极端寒潮，气温持续下降。你是少数提前获知灾难的幸存者之一，必须在50天内存活，等待救援。
-
-### 温度变化规律
-- 第1天：约10°C（正常偏冷）
-- 第10天：降至0°C（开始结冰）
-- 第20天：降至-30°C（极寒）
-- 第30天后：稳定在-40°C左右（地狱级严寒）
-
-### 生存挑战
-- 寒冷：气温下降需要燃料取暖，否则失温
-- 饥饿：食物和水是生存必需品
-- 孤独：长期隔离影响精神状态
-- 危险：其他幸存者、野兽、恶劣天气
-
-### 氛围基调
-- 孤独、寒冷、压抑
-- 偶有希望的微光（发现物资、遇到好人）
-- 强调资源匮乏和生存焦虑
-</world>
-"""
-
-ICE_AGE_MECHANICS = """
-### 生存消耗标准 (每日)
-- 🍱 饥饿消耗：每天消耗 1 个【罐头】或【压缩饼干】。若无食物，HP -10。
-- 💧 饮水消耗：每天消耗 1 单位【桶装水】。若无水，HP -15。
-- 🔥 取暖消耗：
-  - 废弃小屋：每天消耗 2 次【木柴】或 1 个【煤炭】。
-  - 地下防空洞：每天消耗 1 次【木柴】。
-  - 科研站残骸：有燃料时自动保持温暖，消耗少。
-  - 若无燃料取暖：根据当前气温扣除 HP（0°C以下每降10度，HP额外多扣5点）。
-
-### SAN 影响因素
-- 长期隔离：每天 -2~-5
-- 恐惧事件：-5~-15
-- 娱乐活动：使用【扑克牌】或【小说】等物品，SAN +5~+15
-- 好消息/安全感：+5~+10
-- 压抑环境：-3
-
-### 胜利条件
-存活超过50天，等到救援
-
-### 危机事件触发
-- 约20-30%的天数有需要选择的危机事件
-- 其他天数为AI自动描述的日常，必须在 state_update 中体现资源消耗
-</mechanics>
-"""
+from app.prompts.ice_age_common import (
+    ICE_AGE_WORLD_CONTEXT, 
+    ICE_AGE_MECHANICS, 
+    calculate_temperature,
+    format_ice_age_inventory,
+    format_ice_age_talents
+)
 
 
 # ==================== 批量生成提示词 ====================
@@ -84,6 +36,7 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
 - 日记体/生存手记风格
 - 环境描写突出寒冷、冰雪、暴风
 - 节奏张弛有度
+- 没有危机事件的一天，生存日志控制在50字以内。
 
 ## 情绪基调映射
 - SAN > 70：正常叙事
@@ -128,21 +81,25 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
 7. 有危机天：必须包含 choices 数组，数组中每个元素必须是包含 text 和 risk 的 JSON 对象：
    - text: 选项描述（如 "A. 搜索房屋"）
    - risk: 风险等级，只能是 "Low"(低)、"Medium"(中)、"High"(高)、"Extreme"(极高) 之一。
-   示例：
+   <example>
    "choices": [
      {{"text": "A. 冒险搜索", "risk": "High"}},
      {{"text": "B. 安全撤离", "risk": "Low"}}
    ]
+   </example>
 8. 每天必须在 state_update 的 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
    - 食物消耗：移除 1 个【罐头】或【压缩饼干】等
    - 饮水消耗：移除 1 个【桶装水】
    - 燃料消耗：移除对应的【木柴】或【煤炭】
-   示例：
+   <example>
    "item_changes": {{
      "remove": [{{"name": "罐头", "count": 1}}, {{"name": "桶装水", "count": 1}}, {{"name": "木柴", "count": 2}}],
      "add": []
    }}
-9. 如果玩家背包中某种生存物资耗尽，请在 narration 中描写玩家的窘迫处境并在 state_update 中扣除大幅 HP。
+   </example>
+9. **CRITICAL**: 如果某一天触发了危机事件 (`has_crisis: true`)，你必须在闭合该天的 `<day_log>` 标签后**立即停止生成**。绝对不要生成后续的日期。这是因为玩家的选择会改变未来的发展。
+   - 正确做法：Day N (Crisis) -> STOP
+   - 错误做法：Day N (Crisis) -> Day N+1 -> Day N+2...
 </task>
 
 <constraints>
@@ -167,32 +124,41 @@ def build_ice_age_narrator_prompt(
 ) -> str:
     """构建冰河末世批量生成的用户提示词"""
     
-    # 计算当前气温
-    def calc_temp(d: int) -> int:
-        if d <= 1: return 10
-        if d <= 10: return 10 - (d - 1)
-        if d <= 20: return 0 - (d - 10) * 3
-        if d <= 30: return -30 - (d - 20)
-        return -40
-    
-    current_temp = calc_temp(start_day)
+    current_temp = calculate_temperature(start_day)
     
     # 格式化物品
-    inventory_str = "空" if not inventory else "\n".join(
-        f"- {item.name} x{item.count}" for item in inventory
-    )
+    inventory_str = format_ice_age_inventory(inventory)
     
     # 格式化天赋
-    talents_str = "无" if not talents else "\n".join(
-        f"- {t.get('name', '未知')}: {t.get('hiddenDescription', '')}" for t in talents
-    )
+    talents_str = format_ice_age_talents(talents)
     
     # 格式化避难所
     shelter_str = "无避难所" if not shelter else f"{shelter.get('name', '未知')}"
     
     # 格式化历史
-    history_str = "无" if not history else "\n".join(
-        f"第{h.get('day', '?')}天: {h.get('log', '')[:50]}..." for h in history[-5:]
+    def format_history_item(h):
+        day_str = f"第{h.get('day', '?')}天"
+        log_content = h.get('log', '')
+        # 截取前60个字符作为摘要
+        log_summary = log_content[:60] + "..." if len(log_content) > 60 else log_content
+        
+        item_str = f"{day_str}: {log_summary}"
+        
+        # 如果有玩家选择和判定结果，必须包含
+        action = h.get('player_action')
+        result = h.get('judge_result')
+        
+        if action:
+            item_str += f"\n  (玩家选择: {action})"
+        if result:
+             # 结果通常比较重要，多保留一些
+            result_short = result[:100] + "..." if len(result) > 100 else result
+            item_str += f"\n  (判定后果: {result_short})"
+            
+        return item_str
+
+    history_str = "无" if not history else "\n\n".join(
+        format_history_item(h) for h in history[-5:]
     )
     
     return f"""
@@ -227,10 +193,8 @@ def build_ice_age_narrator_prompt(
 
 注意：
 1. 第一天不要触发危机事件
-2. 危机事件应该与玩家的物品和处境相关
-3. 气温越低，生存越困难
-4. 如果没有燃料取暖，应该根据环境温度扣减HP。
-5. 每天必须在 state_update 的 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
+2. 缺少燃料、食物、饮水等，应根据规则扣减HP和SAN。
+3. 每天必须在 state_update 的 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
    - 食物消耗：移除 1 个【罐头】或【压缩饼干】等
    - 饮水消耗：移除 1 个【桶装水】
    - 燃料消耗：移除对应的【木柴】或【煤炭】（数量参考生存消耗标准）
@@ -240,6 +204,7 @@ def build_ice_age_narrator_prompt(
      "add": []
    }}
 6. 如果玩家背包中某种生存物资耗尽，请在 narration 中描写玩家的窘迫处境并在 state_update 中扣除大幅 HP。
+7. 【重要】一旦生成了包含危机事件（has_crisis: true）的一天，请在输出该天的完整 JSON 后立即结束！不要生成后面几天的内容。
 
 请直接输出JSON格式的结果。
 </instruction>
