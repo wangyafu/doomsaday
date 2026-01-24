@@ -96,50 +96,45 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
 
 根据玩家当前状态，一次性生成5天的生存日志。
 
-### 输出格式（JSON数组）
+### 输出格式
+请依次输出每天的日志，每一天用 <day_log> 标签包裹。
 
-```json
+<day_log>
 {{
-  "days": [
-    {{
-      "day": 1,
-      "temperature": 10,
-      "narration": "第1天的叙述内容（100-150字）...",
-      "has_crisis": false,
-      "state_update": {{
-        "hp": 0,
-        "san": -2,
-        "item_changes": {{
-          "remove": [],
-          "add": []
-        }}
-      }}
-    }},
-    {{
-      "day": 2,
-      "temperature": 8,
-      "narration": "第2天发生了危机...",
-      "has_crisis": true,
-      "choices": [
-        "A. 打开门查看",
-        "B. 隔着门询问",
-        "C. 保持沉默",
-        "D. 拿起武器警戒"
-      ],
-      "hidden_hint": "A选项风险最高，可能遭遇强盗。"
-    }}
-  ]
+  "day": 1,
+  "temperature": 10,
+  "narration": "...",
+  "has_crisis": false,
+  "state_update": {{ ... }}
 }}
-```
+</day_log>
+
+<day_log>
+{{
+  "day": 2,
+  ...
+}}
+</day_log>
 
 ### 重要规则
-1. 每天必须包含 day, temperature, narration
-2. 无危机天：has_crisis=false，必须包含 state_update
-3. 有危机天：has_crisis=true，必须包含 choices（4个选项），不需要 state_update
-4. 约20-30%的天数有危机事件
-5. 气温根据天数计算（见世界观）
-6. 叙述要基于玩家拥有的物品和天赋
-7. 状态更新要合理（每天消耗食物/燃料，气温低时可能掉HP）
+1. 不要输出最外层的 ```json 或 {{ "days": [...] }}
+2. 每天必须独立被 <day_log> 标签包裹
+
+### 重要规则
+3. 每天必须包含 day, temperature, narration
+4. 无危机天：has_crisis=false，必须包含 state_update
+5. 有危机天：has_crisis=true，必须包含 choices（4个选项），不需要 state_update
+6. 约20-30%的天数有危机事件
+7. 每天必须在 state_update 的 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
+   - 食物消耗：移除 1 个【罐头】或【压缩饼干】等
+   - 饮水消耗：移除 1 个【桶装水】
+   - 燃料消耗：移除对应的【木柴】或【煤炭】
+   示例：
+   "item_changes": {{
+     "remove": [{{"name": "罐头", "count": 1}}, {{"name": "桶装水", "count": 1}}, {{"name": "木柴", "count": 2}}],
+     "add": []
+   }}
+8. 如果玩家背包中某种生存物资耗尽，请在 narration 中描写玩家的窘迫处境并在 state_update 中扣除大幅 HP。
 </task>
 
 <constraints>
@@ -227,7 +222,15 @@ def build_ice_age_narrator_prompt(
 2. 危机事件应该与玩家的物品和处境相关
 3. 气温越低，生存越困难
 4. 如果没有燃料取暖，应该根据环境温度扣减HP。
-5. 每天必须在 state_update 的 item_changes.remove 中扣除 1份食物、1份水和对应避难所消耗的燃料。
+5. 每天必须在 state_update 的 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
+   - 食物消耗：移除 1 个【罐头】或【压缩饼干】等
+   - 饮水消耗：移除 1 个【桶装水】
+   - 燃料消耗：移除对应的【木柴】或【煤炭】（数量参考生存消耗标准）
+   示例：
+   "item_changes": {{
+     "remove": [{{"name": "罐头", "count": 1}}, {{"name": "桶装水", "count": 1}}, {{"name": "木柴", "count": 2}}],
+     "add": []
+   }}
 6. 如果玩家背包中某种生存物资耗尽，请在 narration 中描写玩家的窘迫处境并在 state_update 中扣除大幅 HP。
 
 请直接输出JSON格式的结果。

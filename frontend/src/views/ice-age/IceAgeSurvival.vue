@@ -25,32 +25,54 @@ const pendingCrisis = computed(() => {
   return log || null
 })
 
-// 调用后端 API 批量生成多天
-async function generateBatchDays(): Promise<PendingDayLog[]> {
-  const startDay = iceAgeStore.day
-  const days: PendingDayLog[] = []
+// 自动播放控制
+const isAutoPlaying = ref(false)
 
+// 加载更多天数并自动播放
+async function loadMoreDays() {
+  if (isLoadingMore.value) return
+  isLoadingMore.value = true
+  isAutoPlaying.value = true // 开始自动播放
+  
   try {
+    const startDay = iceAgeStore.day
     let fullText = ''
+    // 记录已解析的天数集合，避免重复
+    const parsedDays = new Set<number>()
+
     for await (const chunk of iceAgeNarrateStream({
       start_day: startDay,
       days_to_generate: 5,
       stats: { hp: iceAgeStore.stats.hp, san: iceAgeStore.stats.san },
       inventory: iceAgeStore.inventory.map(i => ({ name: i.name, count: i.count, description: i.description || '', hidden: i.hidden || '' })),
       hidden_tags: iceAgeStore.hiddenTags,
-      history: iceAgeStore.getRecentHistory(5),
+      history: iceAgeStore.getRecentHistory(5).map(h => ({
+        day: h.day,
+        log: h.log,
+        player_action: h.player_action ?? undefined,
+        judge_result: h.judge_result ?? undefined
+      })),
       shelter: iceAgeStore.shelter ? { id: iceAgeStore.shelter.id, name: iceAgeStore.shelter.name, warmth: iceAgeStore.shelter.warmth } : null,
       talents: iceAgeStore.selectedTalents.map(t => ({ id: t.id, name: t.name, hiddenDescription: t.hiddenDescription }))
     })) {
       fullText += chunk
-    }
-
-    // 解析 JSON 结果
-    const jsonMatch = fullText.match(/\{[\s\S]*\}/)
-    if (jsonMatch) {
-      const result = JSON.parse(jsonMatch[0])
-      if (result.days && Array.isArray(result.days)) {
-        for (const d of result.days) {
+      
+      // 全量匹配
+      const matches = [...fullText.matchAll(/<day_log>([\s\S]*?)<\/day_log>/g)]
+      
+      for (const match of matches) {
+        try {
+          const jsonStr = match[1]
+          // 简单的去重检查，避免重复 parse
+          // 但为了获取 day number，得先 parse 或者正则提取 day
+          const dayMatch = jsonStr.match(/"day":\s*(\d+)/)
+          if (!dayMatch) continue
+          
+          const dayNum = parseInt(dayMatch[1])
+          
+          if (parsedDays.has(dayNum)) continue
+          
+          const d = JSON.parse(jsonStr)
           const day: PendingDayLog = {
             day: d.day,
             temperature: d.temperature,
@@ -63,64 +85,43 @@ async function generateBatchDays(): Promise<PendingDayLog[]> {
               itemChanges: d.state_update.item_changes
             } : undefined
           }
-          days.push(day)
+          
+          iceAgeStore.addPendingDays([day])
+          parsedDays.add(dayNum)
+          
+          // 尝试自动播放
+          if (isAutoPlaying.value && !pendingCrisis.value) {
+            await revealNextDay()
+          }
+          
+        } catch (e) {
+          console.warn('解析流式JSON失败:', e)
         }
       }
     }
   } catch (error) {
-    console.error('生成日志失败，使用备用数据:', error)
-    // 备用数据：如果 API 失败，生成简单的历程
-    for (let i = 0; i < 3; i++) {
-      const dayNum = startDay + i
-      days.push({
-        day: dayNum,
-        temperature: getTemperature(dayNum),
-        narration: `第${dayNum}天，你在避难所中度过了平静的一天。窗外的风雪依旧呼啸。`,
-        hasCrisis: false,
-        stateUpdate: { hp: -1, san: -2 }
-      })
-    }
-  }
-
-  return days.length > 0 ? days : [{
-    day: startDay,
-    temperature: getTemperature(startDay),
-    narration: `第${startDay}天，你在避难所中度过了平静的一天。`,
-    hasCrisis: false,
-    stateUpdate: { hp: 0, san: -2 }
-  }]
-}
-
-// 计算气温
-function getTemperature(dayNum: number): number {
-  if (dayNum <= 1) return 10
-  if (dayNum <= 10) return 10 - (dayNum - 1)
-  if (dayNum <= 20) return 0 - (dayNum - 10) * 3
-  if (dayNum <= 30) return -30 - (dayNum - 20)
-  return -40
-}
-
-// 加载更多天数
-async function loadMoreDays() {
-  if (isLoadingMore.value) return
-  isLoadingMore.value = true
-  
-  try {
-    const newDays = await generateBatchDays()
-    iceAgeStore.addPendingDays(newDays)
+    console.error('加载失败:', error)
   } finally {
     isLoadingMore.value = false
+    // 如果自然结束但没有触发危机，继续尝试播放剩余的（虽然理论上流式里已经播了）
   }
 }
 
 // 展示下一天
 async function revealNextDay() {
-  // 如果有未解决的危机，不能继续
-  if (pendingCrisis.value) return
+  // 如果有未解决的危机，暂停自动播放
+  if (pendingCrisis.value) {
+    isAutoPlaying.value = false
+    return
+  }
   
-  // 检查是否需要加载更多
-  if (!iceAgeStore.hasPendingDays()) {
-    await loadMoreDays()
+  // 检查是否需要加载更多（如果也没在加载中）
+  if (!iceAgeStore.hasPendingDays() && !isLoadingMore.value) {
+     // 可以在这里触发加载更多，甚至可以是无限滚动
+     // await loadMoreDays() 
+     // 但为了避免递归死循环，还是让用户点击或者外层控制更好
+     isAutoPlaying.value = false
+     return
   }
   
   // 消费下一个待展示日志
@@ -133,6 +134,19 @@ async function revealNextDay() {
       hp: pending.stateUpdate.hp,
       san: pending.stateUpdate.san
     })
+    // 应用物品消耗
+    if (pending.stateUpdate.itemChanges) {
+      if (pending.stateUpdate.itemChanges.remove) {
+        pending.stateUpdate.itemChanges.remove.forEach(i => {
+          iceAgeStore.removeItem(i.name, i.count)
+        })
+      }
+      if (pending.stateUpdate.itemChanges.add) {
+        pending.stateUpdate.itemChanges.add.forEach(i => {
+          iceAgeStore.addItem(i)
+        })
+      }
+    }
   }
   
   // 创建DayLog并添加
@@ -152,6 +166,7 @@ async function revealNextDay() {
   
   // 检查游戏结束
   if (shouldEnd.value) {
+    isAutoPlaying.value = false
     router.push('/ice-age/ending')
     return
   }
@@ -160,9 +175,17 @@ async function revealNextDay() {
   await nextTick()
   scrollToBottom()
   
-  // 如果有危机，设置当前危机日
+  // 如果有危机，设置当前危机日，并停止自动播放
   if (pending.hasCrisis) {
     currentCrisisDay.value = pending.day
+    isAutoPlaying.value = false
+  } else {
+    // 如果还在自动播放且还有库存，延迟一会儿继续展示下一天
+    if (isAutoPlaying.value) {
+      setTimeout(() => {
+        revealNextDay()
+      }, 1000) // 1秒阅读间隔
+    }
   }
 }
 
@@ -219,6 +242,13 @@ async function selectChoice(choice: string) {
       playerAction: choice,
       result: content || judgingText.value
     })
+    
+    // 危机解决后，恢复自动播放（如果还有未展示的）
+    if(iceAgeStore.hasPendingDays()) {
+        isAutoPlaying.value = true
+        setTimeout(revealNextDay, 1500)
+    }
+    
   } catch (error) {
     console.error('判定失败:', error)
     iceAgeStore.updateDayLog(pendingCrisis.value.day, {
@@ -253,11 +283,20 @@ function scrollToBottom() {
 // 背包展开状态
 const showInventory = ref(false)
 
+// 尝试解析选项 JSON
+function tryParseChoice(choice: string): { text: string, risk?: string, reward?: string } | null {
+  if (!choice.trim().startsWith('{')) return null
+  try {
+    return JSON.parse(choice)
+  } catch {
+    return null
+  }
+}
+
 onMounted(async () => {
   // 如果没有日志，开始生成
   if (iceAgeStore.dayLogs.length === 0) {
     await loadMoreDays()
-    await revealNextDay()
   }
 })
 </script>
@@ -407,16 +446,21 @@ onMounted(async () => {
               <button
                 v-for="(choice, idx) in log.choices"
                 :key="idx"
-                class="w-full p-3 bg-gray-700 rounded-lg text-left hover:bg-gray-600 transition-all border border-gray-600 hover:border-cyan-500"
-                @click="selectChoice(choice)"
+                class="w-full p-3 bg-gray-700 rounded-lg text-left hover:bg-gray-600 transition-all border border-gray-600 hover:border-cyan-500 group"
+                @click="selectChoice(tryParseChoice(choice)?.text || choice)"
+                :disabled="isJudging"
               >
-                {{ choice }}
+                <div v-if="tryParseChoice(choice)" class="space-y-1">
+                   <div class="font-medium text-gray-200">{{ tryParseChoice(choice)!.text }}</div>
+                </div>
+                <span v-else>{{ choice }}</span>
               </button>
               
               <!-- 自定义输入 -->
               <button
                 class="w-full p-3 bg-gray-700/50 rounded-lg text-left hover:bg-gray-600 transition-all border border-dashed border-gray-600"
                 @click="showCustomInput = !showCustomInput"
+                :disabled="isJudging"
               >
                 E. 自由输入...
               </button>
@@ -437,6 +481,14 @@ onMounted(async () => {
                 </button>
               </div>
             </div>
+
+            <!-- 判定结果流式显示 -->
+            <div v-if="isJudging" class="mt-3 p-4 bg-gray-900/50 rounded-lg border border-cyan-500/30">
+              <p class="text-cyan-400 mb-2 flex items-center gap-2">
+                <span class="animate-spin">⏳</span> 正在判定后果...
+              </p>
+              <p class="text-gray-300 whitespace-pre-wrap">{{ judgingText }}</p>
+            </div>
           </template>
           
           <!-- 已选择的行动和结果 -->
@@ -448,18 +500,24 @@ onMounted(async () => {
           </template>
         </div>
 
-        <!-- 继续按钮 -->
+        <!-- 加载中指示器 -->
+        <div v-if="isLoadingMore" class="flex justify-center p-4">
+            <div class="text-cyan-400 flex items-center gap-2">
+                <span class="animate-spin">⏳</span> 正在推演未来几天...
+            </div>
+        </div>
+
+        <!-- 继续按钮 (手动模式) -->
         <div 
-          v-if="!pendingCrisis && !shouldEnd"
+          v-if="!pendingCrisis && !shouldEnd && !isLoadingMore && !isAutoPlaying"
           class="flex justify-center py-4"
         >
           <button
             class="px-8 py-4 bg-cyan-600 hover:bg-cyan-500 rounded-lg font-bold text-lg transition-all active:scale-95 flex items-center gap-2"
             :disabled="isLoadingMore"
-            @click="revealNextDay"
+            @click="loadMoreDays"
           >
-            <span v-if="isLoadingMore" class="animate-spin">⏳</span>
-            <span v-else>继续 →</span>
+            继续生存 (5天) →
           </button>
         </div>
 
