@@ -158,6 +158,12 @@ async function revealNextDay() {
     choices: pending.choices,
     stateSnapshot: { ...iceAgeStore.stats },
     inventorySnapshot: [...iceAgeStore.inventory],
+    resourceChanges: pending.stateUpdate ? {
+      hp: pending.stateUpdate.hp,
+      san: pending.stateUpdate.san,
+      itemsAdded: pending.stateUpdate.itemChanges?.add,
+      itemsRemoved: pending.stateUpdate.itemChanges?.remove
+    } : undefined,
     isRevealed: true
   }
   
@@ -240,7 +246,13 @@ async function selectChoice(choice: string) {
     // 更新日志
     iceAgeStore.updateDayLog(pendingCrisis.value.day, {
       playerAction: choice,
-      result: content || judgingText.value
+      result: content || judgingText.value,
+      resourceChanges: stateUpdate ? {
+          hp: stateUpdate.stat_changes?.hp || 0,
+          san: stateUpdate.stat_changes?.san || 0,
+          itemsAdded: stateUpdate.item_changes?.add ? stateUpdate.item_changes.add.map(name => ({ name, count: 1 })) : undefined, // Check if 'add' is array of strings or objects. Based on 'remove', they seem like strings in judge parse, but narrate parse has objects
+          itemsRemoved: stateUpdate.item_changes?.remove ? stateUpdate.item_changes.remove.map(name => ({ name, count: 1 })) : undefined
+      } : undefined
     })
     
     // 危机解决后，恢复自动播放（如果还有未展示的）
@@ -284,7 +296,14 @@ function scrollToBottom() {
 const showInventory = ref(false)
 
 // 尝试解析选项 JSON
-function tryParseChoice(choice: string): { text: string, risk?: string, reward?: string } | null {
+// 尝试解析选项 JSON
+function tryParseChoice(choice: string | any): { text: string, risk?: string, reward?: string } | null {
+  if (typeof choice === 'object' && choice !== null) {
+      // 兼容后端直接返回对象的情况
+      return choice
+  }
+  if (typeof choice !== 'string') return null
+  
   if (!choice.trim().startsWith('{')) return null
   try {
     return JSON.parse(choice)
@@ -432,6 +451,22 @@ onMounted(async () => {
             <div class="text-xs text-gray-500">
               HP: {{ log.stateSnapshot.hp }} / SAN: {{ log.stateSnapshot.san }}
             </div>
+          </div>
+          
+          <!-- 资源变动显示 -->
+          <div v-if="log.resourceChanges" class="mb-3 flex flex-wrap gap-2 text-xs">
+             <span v-if="log.resourceChanges.hp !== 0" :class="log.resourceChanges.hp > 0 ? 'text-green-400' : 'text-red-400'" class="bg-gray-900/50 px-2 py-1 rounded">
+                {{ log.resourceChanges.hp > 0 ? '+' : '' }}{{ log.resourceChanges.hp }} ❤️
+             </span>
+             <span v-if="log.resourceChanges.san !== 0" :class="log.resourceChanges.san > 0 ? 'text-green-400' : 'text-red-400'" class="bg-gray-900/50 px-2 py-1 rounded">
+                {{ log.resourceChanges.san > 0 ? '+' : '' }}{{ log.resourceChanges.san }} 🧠
+             </span>
+             <span v-for="item in log.resourceChanges.itemsRemoved" :key="'rm-' + item.name" class="text-red-300 bg-red-900/20 px-2 py-1 rounded border border-red-900/30">
+                -{{ item.count }} {{ item.name }}
+             </span>
+             <span v-for="item in log.resourceChanges.itemsAdded" :key="'add-' + item.name" class="text-green-300 bg-green-900/20 px-2 py-1 rounded border border-green-900/30">
+                +{{ item.count }} {{ item.name }}
+             </span>
           </div>
           
           <!-- 叙述内容 -->

@@ -33,6 +33,12 @@ export interface DayLog {
     result?: string              // 结果叙述
     stateSnapshot: Stats         // 当日结束时状态快照
     inventorySnapshot: InventoryItem[]  // 当日结束时背包快照
+    resourceChanges?: {          // 当日资源变动
+        hp: number
+        san: number
+        itemsAdded?: InventoryItem[]
+        itemsRemoved?: InventoryItem[]
+    }
     isRevealed: boolean          // 是否已展示给玩家
 }
 
