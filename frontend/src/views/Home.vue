@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore'
+import { useIceAgeStore } from '@/stores/iceAgeStore'
 import PaymentModal from '@/components/PaymentModal.vue'
 import { getArchives } from '@/api'
 import type { ArchiveRecord } from '@/types'
@@ -10,6 +11,7 @@ import alipayQrcode from '@/assets/支付宝收款码.jpg'
 
 const router = useRouter()
 const gameStore = useGameStore()
+const iceAgeStore = useIceAgeStore()
 const showDonation = ref(false)
 const showPaymentModal = ref(false)
 
@@ -77,6 +79,29 @@ function executeStart() {
   router.push('/rebirth')
 }
 
+function handleStartIceAge() {
+  iceAgeStore.checkDailyReset()
+  
+  // 使用和丧尸末日相同的次数限制逻辑
+  if (iceAgeStore.is_supporter) {
+    executeStartIceAge()
+    return
+  }
+
+  if (iceAgeStore.daily_play_count < 2) {
+    iceAgeStore.incrementPlayCount()
+    executeStartIceAge()
+    return
+  }
+
+  showPaymentModal.value = true
+}
+
+function executeStartIceAge() {
+  iceAgeStore.resetGame()
+  router.push('/ice-age/start')
+}
+
 function continueGame() {
   if (gameStore.day > 1) {
     router.push('/survival')
@@ -136,13 +161,18 @@ onMounted(() => {
         </div>
       </div>
       
-      <!-- 极寒末世 - 锁定 -->
-      <div class="scenario-card bg-gray-900 border border-gray-700 rounded-lg p-6 opacity-50 cursor-not-allowed">
+      <!-- 冰河末世 - 可选 -->
+      <div 
+        class="scenario-card bg-gray-900 border-2 border-cyan-600 rounded-lg p-6 cursor-pointer
+               hover:bg-gray-800 transition-all duration-300 hover:scale-105"
+        @click="handleStartIceAge"
+      >
         <div class="flex items-center gap-4">
           <span class="text-4xl">❄️</span>
           <div>
-            <h2 class="text-xl font-bold text-gray-500">极寒末世</h2>
-            <p class="text-gray-600 text-sm">信号丢失...</p>
+            <h2 class="text-xl font-bold text-cyan-400">冰河末世</h2>
+            <p class="text-gray-400 text-sm">极寒来袭，存活50天</p>
+            <span class="inline-block mt-1 px-2 py-0.5 text-xs bg-cyan-600/30 text-cyan-300 rounded">NEW</span>
           </div>
         </div>
       </div>
@@ -397,20 +427,39 @@ onMounted(() => {
       </transition>
     </div>
     
-    <!-- 联系开发者 -->
-    <div class="mt-8 text-center">
-      <p class="text-gray-500 text-sm mb-2">联系开发者</p>
-      <a 
-        href="https://www.xiaohongshu.com/user/profile/635f85b8000000001901fe43"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 
-               text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-300 
-               hover:scale-105 shadow-lg hover:shadow-red-500/50"
-      >
-        <span class="text-lg">📕</span>
-        <span class="font-medium">小红书</span>
-      </a>
+    <!-- 底部链接区域 -->
+    <div class="mt-12 mb-12 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
+      <!-- 联系开发者 -->
+      <div class="text-center">
+        <p class="text-gray-500 text-sm mb-3">联系开发者</p>
+        <a 
+          href="https://www.xiaohongshu.com/user/profile/635f85b8000000001901fe43"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-500 to-pink-500 
+                 text-white rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-300 
+                 hover:scale-105 shadow-lg hover:shadow-red-500/50"
+        >
+          <span class="text-xl">📕</span>
+          <span class="font-bold text-lg">小红书</span>
+        </a>
+      </div>
+
+      <!-- 更多好玩 -->
+      <div class="text-center">
+        <p class="text-gray-500 text-sm mb-3">更多好玩</p>
+        <a 
+          href="https://jingshenwuzhong.pages.dev"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
+                 text-white rounded-xl hover:from-purple-600 hover:to-indigo-600 transition-all duration-300 
+                 hover:scale-105 shadow-lg hover:shadow-purple-500/50"
+        >
+          <span class="text-xl">🧠</span>
+          <span class="font-bold text-lg">精神物种</span>
+        </a>
+      </div>
     </div>
 
     <!-- 支付弹窗 -->
