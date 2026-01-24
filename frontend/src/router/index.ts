@@ -12,58 +12,58 @@ const router = createRouter({
     {
       path: '/rebirth',
       name: 'Rebirth',
-      component: () => import('@/views/Rebirth.vue')
+      component: () => import('@/views/zombie/Rebirth.vue')
     },
     {
       path: '/profession',
       name: 'ProfessionSelect',
-      component: () => import('@/views/ProfessionSelect.vue')
+      component: () => import('@/views/zombie/ProfessionSelect.vue')
     },
     {
       path: '/market',
       name: 'Market',
-      component: () => import('@/views/Market.vue')
+      component: () => import('@/views/zombie/Market.vue')
     },
     {
       path: '/survival',
       name: 'Survival',
-      component: () => import('@/views/Survival.vue')
+      component: () => import('@/views/zombie/Survival.vue')
     },
     {
       path: '/ending',
       name: 'Ending',
-      component: () => import('@/views/Ending.vue')
+      component: () => import('@/views/zombie/Ending.vue')
     },
     // 冰河末世路由
     {
       path: '/ice-age/start',
       name: 'IceAgeStart',
-      component: () => import('@/views/IceAgeStart.vue')
+      component: () => import('@/views/ice-age/IceAgeStart.vue')
     },
     {
       path: '/ice-age/talent',
       name: 'IceAgeTalent',
-      component: () => import('@/views/IceAgeTalent.vue')
+      component: () => import('@/views/ice-age/IceAgeTalent.vue')
     },
     {
       path: '/ice-age/shelter',
       name: 'IceAgeShelter',
-      component: () => import('@/views/IceAgeShelter.vue')
+      component: () => import('@/views/ice-age/IceAgeShelter.vue')
     },
     {
       path: '/ice-age/market',
       name: 'IceAgeMarket',
-      component: () => import('@/views/IceAgeMarket.vue')
+      component: () => import('@/views/ice-age/IceAgeMarket.vue')
     },
     {
       path: '/ice-age/survival',
       name: 'IceAgeSurvival',
-      component: () => import('@/views/IceAgeSurvival.vue')
+      component: () => import('@/views/ice-age/IceAgeSurvival.vue')
     },
     {
       path: '/ice-age/ending',
       name: 'IceAgeEnding',
-      component: () => import('@/views/IceAgeEnding.vue')
+      component: () => import('@/views/ice-age/IceAgeEnding.vue')
     }
   ]
 })
