@@ -12,8 +12,8 @@ import type {
 // 根据环境变量设置 API 基础路径
 // 开发环境：使用代理到 localhost:8000
 // 生产环境：使用完整的生产域名
-const API_BASE = import.meta.env.MODE === 'production' 
-  ? 'https://moshi.hgtang.com/api' 
+const API_BASE = import.meta.env.MODE === 'production'
+  ? 'https://moshi.hgtang.com/api'
   : '/api';
 
 /**
@@ -31,11 +31,11 @@ function logRequest(endpoint: string, body: unknown) {
  */
 export function parseStateUpdate<T>(text: string): { content: string; stateUpdate: T | null } {
   const stateUpdateMatch = text.match(/<state_update>([\s\S]*?)<\/state_update>/i);
-  
+
   if (stateUpdateMatch) {
     // 移除 state_update 标签，保留纯叙事内容
     const content = text.replace(/<state_update>[\s\S]*?<\/state_update>/gi, "").trim();
-    
+
     try {
       const stateUpdate = JSON.parse(stateUpdateMatch[1].trim()) as T;
       console.log("📊 [API] 解析到状态更新:", stateUpdate);
@@ -45,7 +45,7 @@ export function parseStateUpdate<T>(text: string): { content: string; stateUpdat
       return { content, stateUpdate: null };
     }
   }
-  
+
   return { content: text, stateUpdate: null };
 }
 
@@ -56,19 +56,19 @@ export function parseStateUpdate<T>(text: string): { content: string; stateUpdat
 export function filterStateUpdateContent(text: string): string {
   // 移除完整的 <state_update>...</state_update> 标签
   let filtered = text.replace(/<state_update>[\s\S]*?<\/state_update>/gi, "");
-  
+
   // 处理未闭合的 <state_update> 标签（流式输出中可能出现）
   const stateUpdateStart = filtered.indexOf("<state_update>");
   if (stateUpdateStart !== -1) {
     filtered = filtered.substring(0, stateUpdateStart);
   }
-  
+
   // 处理可能的部分标签（如 "<state" 或 "<state_up"）
   const partialMatch = filtered.match(/<s(?:t(?:a(?:t(?:e(?:_(?:u(?:p(?:d(?:a(?:t(?:e)?)?)?)?)?)?)?)?)?)?)?$/i);
   if (partialMatch) {
     filtered = filtered.substring(0, filtered.length - partialMatch[0].length);
   }
-  
+
   return filtered;
 }
 
@@ -86,7 +86,7 @@ export async function* narrateStream(params: {
   profession?: { id: string; name: string; description: string; hidden_description: string } | null;
 }): AsyncGenerator<string, void, unknown> {
   logRequest("POST /game/narrate/stream", params);
-  
+
   const response = await fetch(`${API_BASE}/game/narrate/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -144,15 +144,15 @@ export async function* narrateStream(params: {
 export function filterHiddenContent(text: string): string {
   // 移除完整的 <hidden>...</hidden> 标签
   let filtered = text.replace(/<hidden>[\s\S]*?<\/hidden>/gi, "");
-  
+
   // 移除完整的 <state_update>...</state_update> 标签
   filtered = filtered.replace(/<state_update>[\s\S]*?<\/state_update>/gi, "");
-  
+
   // 处理完整的 <options>...</options> 标签：提取内容并格式化选项
   filtered = filtered.replace(/<options>([\s\S]*?)<\/options>/gi, (_, content) => {
     return formatOptionsContent(content);
   });
-  
+
   // 处理未闭合的 <options> 标签（流式输出中）：提取已有内容并格式化
   const optionsStart = filtered.indexOf("<options>");
   if (optionsStart !== -1) {
@@ -161,37 +161,37 @@ export function filterHiddenContent(text: string): string {
     // 格式化已有的选项内容
     return beforeOptions + formatOptionsContent(optionsContent);
   }
-  
+
   // 处理未闭合的 <hidden> 标签（流式输出中可能出现）
   const hiddenStart = filtered.indexOf("<hidden>");
   if (hiddenStart !== -1) {
     filtered = filtered.substring(0, hiddenStart);
   }
-  
+
   // 处理未闭合的 <state_update> 标签
   const stateUpdateStart = filtered.indexOf("<state_update>");
   if (stateUpdateStart !== -1) {
     filtered = filtered.substring(0, stateUpdateStart);
   }
-  
+
   // 处理可能的部分 <hidden> 标签（如 "<hid" 或 "<hidden"）
   const hiddenPartialMatch = filtered.match(/<h(?:i(?:d(?:d(?:e(?:n)?)?)?)?)?$/i);
   if (hiddenPartialMatch) {
     filtered = filtered.substring(0, filtered.length - hiddenPartialMatch[0].length);
   }
-  
+
   // 处理可能的部分 <state_update> 标签
   const statePartialMatch = filtered.match(/<s(?:t(?:a(?:t(?:e(?:_(?:u(?:p(?:d(?:a(?:t(?:e)?)?)?)?)?)?)?)?)?)?)?$/i);
   if (statePartialMatch) {
     filtered = filtered.substring(0, filtered.length - statePartialMatch[0].length);
   }
-  
+
   // 处理可能的部分 <options> 标签
   const optionsPartialMatch = filtered.match(/<o(?:p(?:t(?:i(?:o(?:n(?:s)?)?)?)?)?)?$/i);
   if (optionsPartialMatch) {
     filtered = filtered.substring(0, filtered.length - optionsPartialMatch[0].length);
   }
-  
+
   return filtered;
 }
 
@@ -245,7 +245,7 @@ export function parseNarrativeChoices(text: string): {
     const optionsText = optionsMatch[1].trim();
     // 移除 <options> 标签，保留日志正文
     const logText = text.replace(/<options>[\s\S]*?<\/options>/gi, "").trim();
-    
+
     // 解析选项 A. B. C. D.（支持换行和无换行两种格式）
     const choices = parseChoicesFromText(optionsText);
 
@@ -277,12 +277,12 @@ export function parseNarrativeChoices(text: string): {
  */
 function parseChoicesFromText(optionsText: string): string[] {
   const choices: string[] = [];
-  
+
   // 使用正则匹配 A. B. C. D. 选项（支持无换行格式）
   // 匹配模式：字母 + 点 + 内容（直到下一个选项或字符串结束）
   const pattern = /([A-D])\.\s*([\s\S]*?)(?=(?:[A-D]\.|$))/g;
   let match;
-  
+
   while ((match = pattern.exec(optionsText)) !== null) {
     const letter = match[1];
     const content = match[2].trim();
@@ -290,7 +290,7 @@ function parseChoicesFromText(optionsText: string): string[] {
       choices.push(`${letter}. ${content}`);
     }
   }
-  
+
   // 如果正则没匹配到，尝试按行解析（兼容旧格式）
   if (choices.length === 0) {
     const lines = optionsText.split("\n");
@@ -301,7 +301,7 @@ function parseChoicesFromText(optionsText: string): string[] {
       }
     }
   }
-  
+
   return choices;
 }
 
@@ -322,7 +322,7 @@ export async function* judgeStream(params: {
   profession?: { id: string; name: string; description: string; hidden_description: string } | null;
 }): AsyncGenerator<string, void, unknown> {
   logRequest("POST /game/judge/stream", params);
-  
+
   const response = await fetch(`${API_BASE}/game/judge/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -380,7 +380,7 @@ export function parseJudgeResult(text: string): {
 } {
   let stateUpdate: JudgeStateResponse | null = null;
   const stateUpdateMatch = text.match(/<state_update>([\s\S]*?)<\/state_update>/i);
-  
+
   if (stateUpdateMatch) {
     try {
       stateUpdate = JSON.parse(stateUpdateMatch[1].trim()) as JudgeStateResponse;
@@ -389,10 +389,10 @@ export function parseJudgeResult(text: string): {
       console.error("❌ [API] Judge 状态更新 JSON 解析失败:", e);
     }
   }
-  
+
   // 移除 state_update 标签，保留纯叙事内容
   const narrativeText = text.replace(/<state_update>[\s\S]*?<\/state_update>/gi, "").trim();
-  
+
   return { narrativeText, stateUpdate };
 }
 
@@ -408,7 +408,7 @@ export async function ending(params: {
   profession?: { id: string; name: string; description: string; hidden_description: string } | null;
 }): Promise<EndingResponse> {
   logRequest("POST /game/ending", params);
-  
+
   const response = await fetch(`${API_BASE}/game/ending`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -438,7 +438,7 @@ export async function submitArchive(params: {
   profession_icon: string | null;
 }): Promise<ArchiveRecord> {
   logRequest("POST /archive/submit", params);
-  
+
   const response = await fetch(`${API_BASE}/archive/submit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -457,6 +457,159 @@ export async function submitArchive(params: {
  */
 export async function getArchives(limit: number = 20): Promise<ArchiveRecord[]> {
   const response = await fetch(`${API_BASE}/archive/list?limit=${limit}`);
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+
+// ==================== 冰河末世 API ====================
+
+/**
+ * 冰河末世 - 批量叙事流式输出
+ */
+export async function* iceAgeNarrateStream(params: {
+  start_day: number;
+  days_to_generate: number;
+  stats: Stats;
+  inventory: InventoryItem[];
+  hidden_tags: string[];
+  history: { day: number; log: string; player_action?: string; judge_result?: string }[];
+  shelter?: { id: string; name: string; warmth: number } | null;
+  talents?: { id: string; name: string; hiddenDescription: string }[] | null;
+}): AsyncGenerator<string, void, unknown> {
+  logRequest("POST /ice-age/narrate-batch/stream", params);
+
+  const response = await fetch(`${API_BASE}/ice-age/narrate-batch/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("No response body");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.type === "content" && data.text) {
+            yield data.text;
+          } else if (data.type === "error") {
+            throw new Error(data.error);
+          }
+        } catch (e) {
+          if (e instanceof Error && e.message) {
+            throw e;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * 冰河末世 - 行动判定流式输出
+ */
+export async function* iceAgeJudgeStream(params: {
+  day: number;
+  temperature: number;
+  event_context: string;
+  action_content: string;
+  stats: { hp: number; san: number };
+  inventory: { name: string; count: number }[];
+  talents?: { id: string; name: string }[] | null;
+}): AsyncGenerator<string, void, unknown> {
+  logRequest("POST /ice-age/judge/stream", params);
+
+  const response = await fetch(`${API_BASE}/ice-age/judge/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("No response body");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.type === "content" && data.text) {
+            yield data.text;
+          } else if (data.type === "error") {
+            throw new Error(data.error);
+          }
+        } catch (e) {
+          if (e instanceof Error && e.message) {
+            throw e;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * 冰河末世 - 结局评价
+ */
+export interface IceAgeEndingResponse {
+  cause_of_death: string | null;
+  epithet: string;
+  comment: string;
+  radar_chart: number[];
+}
+
+export async function iceAgeEnding(params: {
+  days_survived: number;
+  is_victory: boolean;
+  final_stats: { hp: number; san: number };
+  final_inventory: { name: string; count: number }[];
+  history: { day: number; log: string; player_action?: string; judge_result?: string }[];
+  talents?: { id: string; name: string }[] | null;
+}): Promise<IceAgeEndingResponse> {
+  logRequest("POST /ice-age/ending", params);
+
+  const response = await fetch(`${API_BASE}/ice-age/ending`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);

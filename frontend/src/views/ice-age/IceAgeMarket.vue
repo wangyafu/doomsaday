@@ -69,6 +69,23 @@ function addToCart(item: ShopItem) {
   cart.value = new Map(cart.value) // 触发响应式
 }
 
+// 从购物车移除
+function removeFromCart(itemId: string) {
+  const current = cart.value.get(itemId) || 0
+  if (current > 1) {
+    cart.value.set(itemId, current - 1)
+  } else {
+    cart.value.delete(itemId)
+  }
+  cart.value = new Map(cart.value) // 触发响应式
+}
+
+// 获取商品图标
+function getItemIcon(itemId: string): string {
+  const item = ICE_AGE_SHOP_ITEMS.find(i => i.id === itemId)
+  return item?.icon || '📦'
+}
+
 // 获取购物车中某商品数量
 function getCartCount(itemId: string): number {
   return cart.value.get(itemId) || 0
@@ -185,20 +202,23 @@ onUnmounted(() => {
         <div
           v-for="item in filteredItems"
           :key="item.id"
-          class="relative bg-gray-800 rounded-lg p-3 cursor-pointer transition-all hover:bg-gray-700 active:scale-95"
-          :class="{ 'opacity-50': !canAdd(item) && getCartCount(item.id) === 0 }"
+          class="relative bg-gray-800 rounded-lg p-3 cursor-pointer transition-all hover:bg-gray-700 active:scale-95 group"
+          :class="{ 
+            'opacity-50': !canAdd(item) && getCartCount(item.id) === 0,
+            'ring-2 ring-cyan-500': getCartCount(item.id) > 0
+          }"
           @click="addToCart(item)"
         >
           <!-- 已添加数量 -->
           <div 
             v-if="getCartCount(item.id) > 0"
-            class="absolute -top-2 -right-2 w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center text-white text-sm font-bold"
+            class="absolute -top-1 -right-1 z-10 w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg border border-gray-900"
           >
             {{ getCartCount(item.id) }}
           </div>
           
           <!-- 图标 -->
-          <div class="text-3xl mb-2 text-center">{{ item.icon }}</div>
+          <div class="text-3xl mb-2 text-center group-hover:scale-110 transition-transform">{{ item.icon }}</div>
           
           <!-- 名称 -->
           <h3 class="text-sm font-bold text-center mb-1 text-white truncate">{{ item.name }}</h3>
@@ -213,25 +233,45 @@ onUnmounted(() => {
     </div>
 
     <!-- 底部购物车栏 -->
-    <div class="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 p-4">
-      <div class="max-w-6xl mx-auto flex items-center justify-between">
-        <!-- 购物车概要 -->
-        <div class="flex-1">
-          <div class="text-sm text-gray-400 mb-1">
-            购物车: {{ cart.size }} 种商品
-          </div>
-          <div class="text-lg font-bold text-yellow-400">
-            ¥{{ cartTotal.toLocaleString() }} / {{ cartSpace }}格
+    <div class="fixed bottom-0 left-0 right-0 bg-gray-800/95 backdrop-blur-md border-t border-gray-700 p-4 safe-area-bottom z-50">
+      <div class="max-w-6xl mx-auto">
+        <!-- 购物车清单 -->
+        <div v-if="cart.size > 0" class="flex gap-2 overflow-x-auto pb-3 mb-1 no-scrollbar">
+          <div 
+            v-for="[id, count] in cart" 
+            :key="id"
+            class="flex items-center gap-1.5 bg-gray-700 hover:bg-gray-600 rounded-full pl-2 pr-1 py-1 text-xs whitespace-nowrap border border-gray-600 transition-colors"
+          >
+            <span>{{ getItemIcon(id) }}</span>
+            <span class="font-bold text-cyan-400">x{{ count }}</span>
+            <button 
+              class="w-5 h-5 flex items-center justify-center bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-full ml-1 transition-all"
+              @click.stop="removeFromCart(id)"
+            >
+              <span class="text-lg leading-none">×</span>
+            </button>
           </div>
         </div>
-        
-        <!-- 开始按钮 -->
-        <button
-          class="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 rounded-lg font-bold text-lg transition-all active:scale-95"
-          @click="finishShopping"
-        >
-          开始生存 ❄️
-        </button>
+
+        <div class="flex items-center justify-between gap-4">
+          <!-- 购物车概要 -->
+          <div class="flex-1">
+            <div class="text-xs text-gray-400 mb-0.5">
+              已选: {{ Array.from(cart.values()).reduce((a, b) => a + b, 0) }} 件商品
+            </div>
+            <div class="text-lg font-bold text-yellow-400">
+              ¥{{ cartTotal.toLocaleString() }} <span class="text-gray-500 font-normal text-sm">/ {{ cartSpace }}格</span>
+            </div>
+          </div>
+          
+          <!-- 开始按钮 -->
+          <button
+            class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold text-lg shadow-lg shadow-cyan-900/20 transition-all active:scale-95 flex items-center gap-2"
+            @click="finishShopping"
+          >
+            开始生存 <span class="opacity-70">❄️</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -240,5 +280,14 @@ onUnmounted(() => {
 <style scoped>
 .active\:scale-95:active {
   transform: scale(0.95);
+}
+
+/* 隐藏滚动条但保持滚动功能 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 </style>

@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useIceAgeStore } from '@/stores/iceAgeStore'
+import { iceAgeEnding } from '@/api'
 
 const router = useRouter()
 const iceAgeStore = useIceAgeStore()
@@ -21,38 +22,42 @@ const isVictory = computed(() => iceAgeStore.isVictory)
 // 雷达图维度
 const radarLabels = ['生存力', '抗寒力', '智慧', '运气', '心理素质']
 
-// 模拟生成结局（TODO: 替换为真实API）
+// 调用后端 API 生成结局
 async function generateEnding() {
   isLoading.value = true
   
   try {
-    // 模拟API延迟
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
+    const result = await iceAgeEnding({
+      days_survived: iceAgeStore.day,
+      is_victory: isVictory.value,
+      final_stats: { hp: iceAgeStore.stats.hp, san: iceAgeStore.stats.san },
+      final_inventory: iceAgeStore.inventory.map(i => ({ name: i.name, count: i.count })),
+      history: iceAgeStore.getRecentHistory(10).map(h => ({
+        day: h.day,
+        log: h.log,
+        player_action: h.player_action || undefined,
+        judge_result: h.judge_result || undefined
+      })),
+      talents: iceAgeStore.selectedTalents.map(t => ({ id: t.id, name: t.name }))
+    })
+
+    epithet.value = result.epithet
+    comment.value = result.comment
+    causeOfDeath.value = result.cause_of_death
+    radarChart.value = result.radar_chart || [5, 5, 5, 5, 5]
+  } catch (error) {
+    console.error('结局生成失败:', error)
+    // 备用结局
     if (isVictory.value) {
-      const epithets = ['冰原幸存者', '极地战神', '寒冬破晓者', '不屈意志', '冰火传奇']
-      epithet.value = epithets[Math.floor(Math.random() * epithets.length)]
-      comment.value = `在零下四十度的极寒中存活了${iceAgeStore.day}天，你是真正的生存专家。当救援队到达时，你淡定地递给他们一杯热茶，仿佛这只是一次冬季露营。你的避难所被列为"人类求生典范"，供后人参观学习。`
+      epithet.value = '冰原幸存者'
+      comment.value = `在零下四十度的极寒中存活了${iceAgeStore.day}天，你是真正的生存专家！`
       causeOfDeath.value = null
-      radarChart.value = [8, 9, 7, 6, 8]
+      radarChart.value = [8, 7, 6, 5, 7]
     } else {
-      const epithets = ['冰封遗憾', '雪中倒下', '寒风挽歌', '冻土之殇', '极夜迷途']
-      epithet.value = epithets[Math.floor(Math.random() * epithets.length)]
-      
-      if (iceAgeStore.stats.hp <= 0) {
-        causeOfDeath.value = '体力耗尽，在严寒中永远沉睡'
-        comment.value = `第${iceAgeStore.day}天，你的身体终于扛不住了。也许是缺少食物，也许是没能保暖，总之你在一个寒冷的夜晚安静地闭上了眼睛。下次记得多囤点煤炭。`
-      } else {
-        causeOfDeath.value = '精神崩溃，在幻觉中走向风雪'
-        comment.value = `第${iceAgeStore.day}天，你终于无法忍受这无尽的孤独和恐惧。你脱掉了所有衣物，走进了风雪中，嘴里念叨着"我要回家"。至少最后你是微笑着的。`
-      }
-      radarChart.value = [
-        Math.min(10, Math.floor(iceAgeStore.day / 5)),
-        Math.floor(Math.random() * 5) + 3,
-        Math.floor(Math.random() * 4) + 2,
-        Math.floor(Math.random() * 6) + 1,
-        iceAgeStore.stats.san > 0 ? Math.floor(iceAgeStore.stats.san / 15) : 1
-      ]
+      epithet.value = '冰封遗憾'
+      causeOfDeath.value = iceAgeStore.stats.hp <= 0 ? '体力耗尽' : '精神崩溃'
+      comment.value = `第${iceAgeStore.day}天，你的旅程结束了。冰原很残酷，但你已经尽力了。`
+      radarChart.value = [Math.min(10, Math.floor(iceAgeStore.day / 5)), 4, 4, 3, 4]
     }
   } finally {
     isLoading.value = false

@@ -14,6 +14,7 @@ const gameStore = useGameStore()
 const iceAgeStore = useIceAgeStore()
 const showDonation = ref(false)
 const showPaymentModal = ref(false)
+const pendingMode = ref<'zombie' | 'ice-age'>('zombie') // 记录待进入的模式
 
 // 末世档案
 const archives = ref<ArchiveRecord[]>([])
@@ -58,19 +59,33 @@ function handleStartGame() {
   }
 
   // 3. 达到限制，弹出付费框
+  pendingMode.value = 'zombie'
   showPaymentModal.value = true
 }
 
 function onPaymentConfirm() {
   showPaymentModal.value = false
-  executeStart()
+  // 确保两个模式都激活支持者身份
+  gameStore.setSupporter(true) // PaymentModal已设置，这里再次确认
+  iceAgeStore.setSupporter(true)
+  
+  if (pendingMode.value === 'ice-age') {
+    executeStartIceAge()
+  } else {
+    executeStart()
+  }
 }
 
 function onPaymentClose() {
   showPaymentModal.value = false
   // 允许“白嫖”，计数并开始
-  gameStore.incrementPlayCount()
-  executeStart()
+  if (pendingMode.value === 'ice-age') {
+    iceAgeStore.incrementPlayCount()
+    executeStartIceAge()
+  } else {
+    gameStore.incrementPlayCount()
+    executeStart()
+  }
 }
 
 function executeStart() {
@@ -94,6 +109,7 @@ function handleStartIceAge() {
     return
   }
 
+  pendingMode.value = 'ice-age'
   showPaymentModal.value = true
 }
 

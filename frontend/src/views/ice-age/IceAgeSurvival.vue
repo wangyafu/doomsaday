@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useIceAgeStore, type DayLog, type PendingDayLog } from '@/stores/iceAgeStore'
-import StatBar from '@/components/Game/StatBar.vue'
+import { iceAgeNarrateStream, iceAgeJudgeStream, parseStateUpdate } from '@/api'
 
 const router = useRouter()
 const iceAgeStore = useIceAgeStore()
@@ -25,50 +25,70 @@ const pendingCrisis = computed(() => {
   return log || null
 })
 
-// 模拟批量生成多天（实际应调用API）
+// 调用后端 API 批量生成多天
 async function generateBatchDays(): Promise<PendingDayLog[]> {
-  // TODO: 替换为真实API调用
-  // 这里先用模拟数据演示界面
   const startDay = iceAgeStore.day
   const days: PendingDayLog[] = []
-  
-  for (let i = 0; i < 5; i++) {
-    const dayNum = startDay + i
-    const temp = getTemperature(dayNum)
-    const hasCrisis = Math.random() < 0.25 // 25%概率危机
-    
-    const narrations = [
-      `第${dayNum}天，外面的温度已经降到了${temp}°C。你检查了一下物资储备，还算充足。`,
-      `暴风雪呼啸了一整夜，第${dayNum}天的早晨异常安静。窗外积雪已经快没过了窗户。`,
-      `收音机里传来断断续续的广播，说救援队正在组织，但没有具体时间。第${dayNum}天就这样过去了。`,
-      `你在避难所里度过了平静的一天。外面${temp}°C的严寒让你不敢出门。`,
-      `第${dayNum}天，你听到了远处传来的声响，不知道是风声还是别的什么。`
-    ]
-    
-    const day: PendingDayLog = {
-      day: dayNum,
-      temperature: temp,
-      narration: narrations[Math.floor(Math.random() * narrations.length)],
-      hasCrisis: hasCrisis && i > 0, // 第一天不触发危机
-      stateUpdate: {
-        hp: Math.floor(Math.random() * 3) - 1, // -1 to +1
-        san: Math.floor(Math.random() * 5) - 3  // -3 to +1
+
+  try {
+    let fullText = ''
+    for await (const chunk of iceAgeNarrateStream({
+      start_day: startDay,
+      days_to_generate: 5,
+      stats: { hp: iceAgeStore.stats.hp, san: iceAgeStore.stats.san },
+      inventory: iceAgeStore.inventory.map(i => ({ name: i.name, count: i.count, description: i.description || '', hidden: i.hidden || '' })),
+      hidden_tags: iceAgeStore.hiddenTags,
+      history: iceAgeStore.getRecentHistory(5),
+      shelter: iceAgeStore.shelter ? { id: iceAgeStore.shelter.id, name: iceAgeStore.shelter.name, warmth: iceAgeStore.shelter.warmth } : null,
+      talents: iceAgeStore.selectedTalents.map(t => ({ id: t.id, name: t.name, hiddenDescription: t.hiddenDescription }))
+    })) {
+      fullText += chunk
+    }
+
+    // 解析 JSON 结果
+    const jsonMatch = fullText.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[0])
+      if (result.days && Array.isArray(result.days)) {
+        for (const d of result.days) {
+          const day: PendingDayLog = {
+            day: d.day,
+            temperature: d.temperature,
+            narration: d.narration,
+            hasCrisis: d.has_crisis || false,
+            choices: d.choices,
+            stateUpdate: d.state_update ? {
+              hp: d.state_update.hp || 0,
+              san: d.state_update.san || 0,
+              itemChanges: d.state_update.item_changes
+            } : undefined
+          }
+          days.push(day)
+        }
       }
     }
-    
-    if (day.hasCrisis) {
-      day.choices = [
-        'A. 小心翼翼地前往查看',
-        'B. 留在原地不要出声',
-        'C. 拿起武器准备防御',
-        'D. 大声呼喊看是否有人回应'
-      ]
+  } catch (error) {
+    console.error('生成日志失败，使用备用数据:', error)
+    // 备用数据：如果 API 失败，生成简单的历程
+    for (let i = 0; i < 3; i++) {
+      const dayNum = startDay + i
+      days.push({
+        day: dayNum,
+        temperature: getTemperature(dayNum),
+        narration: `第${dayNum}天，你在避难所中度过了平静的一天。窗外的风雪依旧呼啸。`,
+        hasCrisis: false,
+        stateUpdate: { hp: -1, san: -2 }
+      })
     }
-    
-    days.push(day)
   }
-  
-  return days
+
+  return days.length > 0 ? days : [{
+    day: startDay,
+    temperature: getTemperature(startDay),
+    narration: `第${startDay}天，你在避难所中度过了平静的一天。`,
+    hasCrisis: false,
+    stateUpdate: { hp: 0, san: -2 }
+  }]
 }
 
 // 计算气温
@@ -147,32 +167,74 @@ async function revealNextDay() {
 }
 
 // 选择危机事件选项
+const isJudging = ref(false)
+const judgingText = ref('')
+
 async function selectChoice(choice: string) {
-  if (!pendingCrisis.value) return
+  if (!pendingCrisis.value || isJudging.value) return
   
-  // TODO: 调用Judge API
-  // 这里先模拟结果
-  const results = [
-    '你的选择带来了意想不到的结果。一切似乎还在掌控之中。',
-    '这个决定让你付出了一些代价，但至少活了下来。',
-    '幸运的是，事情朝着好的方向发展了。'
-  ]
+  isJudging.value = true
+  judgingText.value = ''
   
-  const result = results[Math.floor(Math.random() * results.length)]
-  
-  // 更新日志
-  iceAgeStore.updateDayLog(pendingCrisis.value.day, {
-    playerAction: choice,
-    result: result
-  })
-  
-  currentCrisisDay.value = null
-  showCustomInput.value = false
-  customAction.value = ''
-  
-  // 滚动到底部
-  await nextTick()
-  scrollToBottom()
+  try {
+    let fullText = ''
+    for await (const chunk of iceAgeJudgeStream({
+      day: pendingCrisis.value.day,
+      temperature: pendingCrisis.value.temperature,
+      event_context: pendingCrisis.value.narration,
+      action_content: choice,
+      stats: { hp: iceAgeStore.stats.hp, san: iceAgeStore.stats.san },
+      inventory: iceAgeStore.inventory.map(i => ({ name: i.name, count: i.count })),
+      talents: iceAgeStore.selectedTalents.map(t => ({ id: t.id, name: t.name }))
+    })) {
+      fullText += chunk
+      // 实时显示（过滤标签）
+      judgingText.value = fullText.replace(/<state_update>[\s\S]*?<\/state_update>/gi, '').trim()
+    }
+
+    // 解析状态更新
+    const { content, stateUpdate } = parseStateUpdate<{
+      score: number;
+      stat_changes: { hp: number; san: number };
+      item_changes?: { remove?: string[]; add?: string[] };
+      new_hidden_tags?: string[];
+      remove_hidden_tags?: string[];
+    }>(fullText)
+
+    // 应用状态更新
+    if (stateUpdate) {
+      if (stateUpdate.stat_changes) {
+        iceAgeStore.updateStats(stateUpdate.stat_changes)
+      }
+      if (stateUpdate.item_changes?.remove) {
+        stateUpdate.item_changes.remove.forEach(name => iceAgeStore.removeItem(name, 1))
+      }
+      if (stateUpdate.new_hidden_tags) {
+        stateUpdate.new_hidden_tags.forEach(tag => iceAgeStore.addHiddenTag(tag))
+      }
+    }
+
+    // 更新日志
+    iceAgeStore.updateDayLog(pendingCrisis.value.day, {
+      playerAction: choice,
+      result: content || judgingText.value
+    })
+  } catch (error) {
+    console.error('判定失败:', error)
+    iceAgeStore.updateDayLog(pendingCrisis.value.day, {
+      playerAction: choice,
+      result: '你的选择带来了意想不到的结果。'
+    })
+  } finally {
+    isJudging.value = false
+    judgingText.value = ''
+    currentCrisisDay.value = null
+    showCustomInput.value = false
+    customAction.value = ''
+    
+    await nextTick()
+    scrollToBottom()
+  }
 }
 
 // 提交自定义行动
@@ -188,6 +250,9 @@ function scrollToBottom() {
   }
 }
 
+// 背包展开状态
+const showInventory = ref(false)
+
 onMounted(async () => {
   // 如果没有日志，开始生成
   if (iceAgeStore.dayLogs.length === 0) {
@@ -198,39 +263,111 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-900 text-white flex flex-col">
-    <!-- 顶部状态栏 -->
-    <div class="sticky top-0 z-40 bg-black/90 backdrop-blur p-4 border-b border-gray-800">
-      <div class="max-w-3xl mx-auto">
-        <!-- 天数和气温 -->
-        <div class="text-center mb-3">
-          <span class="text-2xl font-bold text-cyan-400">第 {{ iceAgeStore.day }} 天</span>
-          <span class="ml-4 text-lg" :class="{
-            'text-blue-300': iceAgeStore.currentTemperature > 0,
-            'text-cyan-400': iceAgeStore.currentTemperature <= 0 && iceAgeStore.currentTemperature > -20,
-            'text-purple-400': iceAgeStore.currentTemperature <= -20
-          }">
-            🌡️ {{ iceAgeStore.currentTemperature }}°C
-          </span>
-          <span class="ml-4 text-sm text-gray-400">
-            🏆 距离胜利还需 <span class="text-yellow-400 font-semibold">{{ Math.max(0, 51 - iceAgeStore.day) }}</span> 天
-          </span>
+  <div class="min-h-screen bg-gray-900 text-white flex flex-col lg:flex-row">
+    <!-- 左侧边栏（移动端在底部） -->
+    <aside class="order-2 lg:order-1 lg:w-64 lg:h-screen lg:sticky lg:top-0 bg-gray-800/95 backdrop-blur border-t lg:border-t-0 lg:border-r border-gray-700 p-4 flex-shrink-0">
+      <!-- 状态信息 -->
+      <div class="flex lg:flex-col gap-4 lg:gap-6">
+        <!-- HP -->
+        <div class="flex-1 lg:flex-none bg-gray-900/50 rounded-xl p-3">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-lg">❤️</span>
+            <span class="text-xs text-gray-400 uppercase">生命值</span>
+          </div>
+          <div class="text-3xl font-bold" :class="iceAgeStore.stats.hp <= 30 ? 'text-red-400' : 'text-white'">
+            {{ iceAgeStore.stats.hp }}
+          </div>
+          <div class="mt-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+            <div class="h-full bg-red-500 transition-all" :style="{ width: `${iceAgeStore.stats.hp}%` }"></div>
+          </div>
         </div>
-        
-        <!-- 状态条 -->
-        <div class="grid grid-cols-2 gap-4 max-w-md mx-auto">
-          <StatBar label="生命" :value="iceAgeStore.stats.hp" icon="❤️" />
-          <StatBar label="理智" :value="iceAgeStore.stats.san" icon="🧠" />
+
+        <!-- SAN -->
+        <div class="flex-1 lg:flex-none bg-gray-900/50 rounded-xl p-3">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-lg">🧠</span>
+            <span class="text-xs text-gray-400 uppercase">理智值</span>
+          </div>
+          <div class="text-3xl font-bold" :class="iceAgeStore.stats.san <= 30 ? 'text-purple-400' : 'text-white'">
+            {{ iceAgeStore.stats.san }}
+          </div>
+          <div class="mt-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+            <div class="h-full bg-purple-500 transition-all" :style="{ width: `${iceAgeStore.stats.san}%` }"></div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 日志滚动区域 -->
-    <div 
-      ref="scrollContainer"
-      class="flex-1 overflow-y-auto p-4"
-    >
-      <div class="max-w-3xl mx-auto space-y-4">
+      <!-- 背包 -->
+      <div class="mt-4 hidden lg:block">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm text-gray-400">🎒 背包</span>
+          <span class="text-xs text-cyan-400">{{ iceAgeStore.inventory.reduce((sum, i) => sum + i.count, 0) }} 件</span>
+        </div>
+        <div v-if="iceAgeStore.inventory.length === 0" class="text-center text-gray-600 text-xs py-4">
+          空空如也
+        </div>
+        <div v-else class="space-y-1 max-h-[40vh] overflow-y-auto">
+          <div 
+            v-for="item in iceAgeStore.inventory" 
+            :key="item.name"
+            class="flex items-center justify-between bg-gray-900/50 rounded-lg px-2 py-1.5 text-xs"
+          >
+            <span class="text-white truncate flex-1">{{ item.name }}</span>
+            <span class="text-cyan-400 font-bold ml-2">×{{ item.count }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 移动端背包按钮 -->
+      <button 
+        class="lg:hidden flex items-center gap-2 px-3 py-2 bg-gray-900/50 rounded-lg text-sm"
+        @click="showInventory = !showInventory"
+      >
+        <span>🎒</span>
+        <span class="text-cyan-400 font-bold">{{ iceAgeStore.inventory.reduce((sum, i) => sum + i.count, 0) }}</span>
+        <span class="text-gray-500 text-xs">{{ showInventory ? '▲' : '▼' }}</span>
+      </button>
+
+      <!-- 移动端背包展开 -->
+      <div v-if="showInventory" class="lg:hidden mt-2 grid grid-cols-3 gap-1">
+        <div 
+          v-for="item in iceAgeStore.inventory" 
+          :key="item.name"
+          class="bg-gray-900/50 rounded-lg p-1.5 text-center text-xs"
+        >
+          <div class="text-white truncate">{{ item.name }}</div>
+          <div class="text-cyan-400 font-bold">×{{ item.count }}</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 右侧主内容区 -->
+    <main class="order-1 lg:order-2 flex-1 flex flex-col min-h-0">
+      <!-- 顶部信息栏 -->
+      <div class="sticky top-0 z-40 bg-black/90 backdrop-blur border-b border-gray-800 p-3">
+        <div class="max-w-3xl mx-auto flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="text-xl font-bold text-cyan-400">第 {{ iceAgeStore.day }} 天</span>
+            <span class="text-sm px-2 py-0.5 rounded" :class="{
+              'bg-blue-900/50 text-blue-300': iceAgeStore.currentTemperature > 0,
+              'bg-cyan-900/50 text-cyan-300': iceAgeStore.currentTemperature <= 0 && iceAgeStore.currentTemperature > -20,
+              'bg-purple-900/50 text-purple-300': iceAgeStore.currentTemperature <= -20
+            }">
+              🌡️ {{ iceAgeStore.currentTemperature }}°C
+            </span>
+          </div>
+          <span class="text-xs text-gray-400">
+            🏆 还需 <span class="text-yellow-400 font-bold">{{ Math.max(0, 51 - iceAgeStore.day) }}</span> 天
+          </span>
+        </div>
+      </div>
+
+      <!-- 日志滚动区域 -->
+      <div 
+        ref="scrollContainer"
+        class="flex-1 overflow-y-auto p-4 pb-24 lg:pb-4"
+      >
+        <div class="max-w-3xl mx-auto space-y-4">
         <!-- 日志卡片列表 -->
         <div
           v-for="log in iceAgeStore.dayLogs"
@@ -340,6 +477,7 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+    </main>
   </div>
 </template>
 

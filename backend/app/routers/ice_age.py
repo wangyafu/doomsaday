@@ -118,7 +118,7 @@ async def narrate_batch_stream(request: IceAgeNarrateRequest):
     async def generate():
         try:
             full_text = ""
-            async for chunk in llm_service.stream_chat(
+            async for chunk in llm_service.chat_stream(
                 system_prompt=ICE_AGE_NARRATOR_SYSTEM_PROMPT,
                 user_prompt=user_prompt,
                 temperature=0.8
@@ -164,7 +164,7 @@ async def judge_stream(request: IceAgeJudgeRequest):
     async def generate():
         try:
             full_text = ""
-            async for chunk in llm_service.stream_chat(
+            async for chunk in llm_service.chat_stream(
                 system_prompt=ICE_AGE_JUDGE_SYSTEM_PROMPT,
                 user_prompt=user_prompt,
                 temperature=0.7

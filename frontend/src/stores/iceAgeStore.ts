@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Stats, InventoryItem, Shelter } from '@/types'
+import type { Stats, InventoryItem } from '@/types'
 
 // 冰河末世天赋定义
 export interface IceAgeTalent {
@@ -72,7 +72,7 @@ export const useIceAgeStore = defineStore('iceAge', () => {
     const hiddenTags = ref<string[]>([])
 
     // 金钱
-    const money = ref(6500)
+    const money = ref(8000)
 
     // 选择的避难所
     const shelter = ref<IceAgeShelter | null>(null)
@@ -141,7 +141,7 @@ export const useIceAgeStore = defineStore('iceAge', () => {
         stats.value = { hp: 100, san: 100 }
         inventory.value = []
         hiddenTags.value = []
-        money.value = 6500
+        money.value = 8000
         shelter.value = null
         selectedTalents.value = []
         dayLogs.value = []

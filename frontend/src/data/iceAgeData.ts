@@ -151,28 +151,28 @@ export const ICE_AGE_SHELTERS: IceAgeShelter[] = [
         id: 'cabin',
         name: '废弃小屋',
         price: 1000,
-        space: 30,
+        space: 80,
         warmth: 1,
-        description: '漏风的木屋，需要大量燃料保暖',
-        hiddenDescription: '防寒能力差，每天需要消耗更多燃料。但位置偏僻，不容易被其他幸存者发现。'
+        description: '漏风的木屋，空间勉强够用',
+        hiddenDescription: '防寒能力差，每天需要消耗较多燃料。但位置偏僻，不容易被其他幸存者发现。'
     },
     {
         id: 'bunker',
         name: '地下防空洞',
         price: 3000,
-        space: 50,
+        space: 150,
         warmth: 2,
-        description: '恒温但压抑，长期居住影响情绪',
-        hiddenDescription: '地下恒温约10°C，不需要太多燃料。但封闭空间会导致SAN值缓慢下降。有存储空间但光线差。'
+        description: '恒温且宽大，长期居住影响情绪',
+        hiddenDescription: '地下恒温约10°C，大幅节省燃料。但封闭空间会导致SAN值缓慢下降。存储空间充裕。'
     },
     {
         id: 'station',
         name: '科研站残骸',
         price: 5000,
-        space: 80,
+        space: 250,
         warmth: 3,
-        description: '有暖气设备，需燃料运转',
-        hiddenDescription: '配备电力暖气系统，有燃料时可以保持温暖。空间大，有实验室设备可能派上用场。但目标明显，可能吸引其他幸存者。'
+        description: '现代设施完备，空间极其宽敞',
+        hiddenDescription: '配备电力暖气系统，有燃料时极度温暖。空间巨大可容纳大量物资。目标明显，需注意防御。'
     }
 ]
 
@@ -213,17 +213,17 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
     {
         id: 'coal',
         name: '煤炭',
-        price: 80,
+        price: 50,
         space: 2,
         category: 'food',
         description: '可用于取暖和烧水',
         icon: '⬛',
-        hidden: '每块煤炭可供暖1天'
+        hidden: '每块煤炭可供暖1天，比木柴更高效'
     },
     {
         id: 'firewood',
         name: '木柴',
-        price: 40,
+        price: 25,
         space: 2,
         category: 'food',
         description: '便宜但燃烧快',
@@ -244,7 +244,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
     {
         id: 'canned_food',
         name: '罐头',
-        price: 35,
+        price: 25,
         space: 1,
         category: 'food',
         description: '保质期长的食物',
@@ -254,7 +254,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
     {
         id: 'biscuit',
         name: '压缩饼干',
-        price: 30,
+        price: 20,
         space: 1,
         category: 'food',
         description: '高热量应急食品',
@@ -274,7 +274,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
     {
         id: 'water',
         name: '桶装水',
-        price: 50,
+        price: 30,
         space: 2,
         category: 'food',
         description: '生存必需品',
