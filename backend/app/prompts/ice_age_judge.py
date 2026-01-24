@@ -55,6 +55,7 @@ ICE_AGE_JUDGE_SYSTEM_PROMPT = """
 """
 
 
+
 def build_ice_age_judge_prompt(
     day: int,
     temperature: int,
@@ -62,7 +63,8 @@ def build_ice_age_judge_prompt(
     action_content: str,
     stats: dict,
     inventory: list,
-    talents: list | None = None
+    talents: list | None = None,
+    luck_value: int = 50
 ) -> str:
     """构建冰河末世Judge的用户提示词"""
     
@@ -96,9 +98,27 @@ def build_ice_age_judge_prompt(
 
 ### 玩家选择
 {action_content}
+
+### 命运骰子
+**{luck_value}** (0-100，数值越大运气越好)
 </context>
 
 <instruction>
 请判定玩家的选择，输出判定叙事和状态更新。
+
+### 判定逻辑（必需遵守）
+1. **风险分析**：首先分析玩家行为的风险等级（Low/Medium/High/Extreme）。
+   - 如果玩家选择的是预设选项且包含Risk字段，以其为准。
+   - 如果是自定义行为，请你根据常识判断风险。
+2. **成败判定**：将【命运骰子】({luck_value}) 与风险等级对比：
+   - **Low (低风险)**：运气 > 10 成功，否则发生小意外。
+   - **Medium (中风险)**：运气 > 40 成功，否则失败并付出代价。
+   - **High (高风险)**：运气 > 70 成功，否则失败并遭受重创。
+   - **Extreme (极高风险)**：运气 > 90 成功，否则可能致命。
+3. **物品修正**：如果玩家使用了极其合适的物品（如用枪打狼），可视为降低了一级风险。
+4. **天赋修正**：如果有相关天赋，可降低风险或增加运气检定时的宽容度。
+5. **拒绝 "剧情杀"**：虽然有随机性，但解释结果时要符合逻辑，不要生硬地"因为运气不好所以你死了"，而是描述为"风雪太大迷失方向"、"冰层突然断裂"等环境因素。
+
+请在判定叙事中隐晦地体现运气的成分，例如"运气不错，你发现了..."或"倒霉的是，你的脚滑了一下..."。
 </instruction>
 """

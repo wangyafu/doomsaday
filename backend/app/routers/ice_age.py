@@ -151,6 +151,9 @@ async def judge_stream(request: IceAgeJudgeRequest):
     """
     llm_service = get_llm_service()
     
+    import random
+    luck_value = random.randint(1, 100)
+
     user_prompt = build_ice_age_judge_prompt(
         day=request.day,
         temperature=request.temperature,
@@ -158,7 +161,8 @@ async def judge_stream(request: IceAgeJudgeRequest):
         action_content=request.action_content,
         stats=request.stats,
         inventory=request.inventory,
-        talents=request.talents
+        talents=request.talents,
+        luck_value=luck_value
     )
     
     async def generate():

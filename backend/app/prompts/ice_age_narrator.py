@@ -125,7 +125,15 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
 4. 无危机天：has_crisis=false，必须包含 state_update
 5. 有危机天：has_crisis=true，必须包含 choices（4个选项），不需要 state_update
 6. 约20-30%的天数有危机事件
-7. 每天必须在 state_update 的 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
+7. 有危机天：必须包含 choices 数组，数组中每个元素必须是包含 text 和 risk 的 JSON 对象：
+   - text: 选项描述（如 "A. 搜索房屋"）
+   - risk: 风险等级，只能是 "Low"(低)、"Medium"(中)、"High"(高)、"Extreme"(极高) 之一。
+   示例：
+   "choices": [
+     {{"text": "A. 冒险搜索", "risk": "High"}},
+     {{"text": "B. 安全撤离", "risk": "Low"}}
+   ]
+8. 每天必须在 state_update 的 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
    - 食物消耗：移除 1 个【罐头】或【压缩饼干】等
    - 饮水消耗：移除 1 个【桶装水】
    - 燃料消耗：移除对应的【木柴】或【煤炭】
@@ -134,7 +142,7 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
      "remove": [{{"name": "罐头", "count": 1}}, {{"name": "桶装水", "count": 1}}, {{"name": "木柴", "count": 2}}],
      "add": []
    }}
-8. 如果玩家背包中某种生存物资耗尽，请在 narration 中描写玩家的窘迫处境并在 state_update 中扣除大幅 HP。
+9. 如果玩家背包中某种生存物资耗尽，请在 narration 中描写玩家的窘迫处境并在 state_update 中扣除大幅 HP。
 </task>
 
 <constraints>
