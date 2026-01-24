@@ -80,6 +80,29 @@ function removeFromCart(itemId: string) {
   cart.value = new Map(cart.value) // 触发响应式
 }
 
+// 判断是否为高频商品（罐头、桶装水、煤炭、木柴、压缩饼干）
+function isHighFrequencyItem(itemId: string): boolean {
+  const highFrequencyIds = ['canned_food', 'water', 'coal', 'firewood', 'biscuit']
+  return highFrequencyIds.includes(itemId)
+}
+
+// 批量添加到购物车（一次购买10个）
+function addBatch(item: ShopItem, event: Event) {
+  event.stopPropagation() // 阻止事件冒泡，避免触发单个购买
+  const quantity = 10
+  const totalPrice = item.price * quantity
+  const totalSpace = item.space * quantity
+  
+  // 检查是否有足够的金钱和空间
+  if (remainingMoney.value < totalPrice || remainingSpace.value < totalSpace) {
+    return
+  }
+  
+  const current = cart.value.get(item.id) || 0
+  cart.value.set(item.id, current + quantity)
+  cart.value = new Map(cart.value) // 触发响应式
+}
+
 // 获取商品图标
 function getItemIcon(itemId: string): string {
   const item = ICE_AGE_SHOP_ITEMS.find(i => i.id === itemId)
@@ -216,6 +239,19 @@ onUnmounted(() => {
           >
             {{ getCartCount(item.id) }}
           </div>
+          
+          <!-- 快捷购买10个按钮(仅高频商品显示) -->
+          <button
+            v-if="isHighFrequencyItem(item.id)"
+            class="absolute -top-1 -left-1 z-10 px-1.5 py-0.5 bg-yellow-500 hover:bg-yellow-400 rounded text-white text-xs font-bold shadow-lg border border-gray-900 transition-all active:scale-90"
+            :class="{
+              'opacity-50': remainingMoney < item.price * 10 || remainingSpace < item.space * 10
+            }"
+            @click="addBatch(item, $event)"
+            title="一次购买10个"
+          >
+            ×10
+          </button>
           
           <!-- 图标 -->
           <div class="text-3xl mb-2 text-center group-hover:scale-110 transition-transform">{{ item.icon }}</div>
