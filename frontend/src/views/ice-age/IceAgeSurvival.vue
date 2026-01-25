@@ -79,11 +79,19 @@ async function loadMoreDays() {
             narration: d.narration,
             hasCrisis: d.has_crisis || false,
             choices: d.choices,
-            stateUpdate: d.state_update ? {
-              hp: d.state_update.hp || 0,
-              san: d.state_update.san || 0,
-              itemChanges: d.state_update.item_changes
-            } : undefined
+            stateUpdate: {
+              hp: d.state_update?.hp || 0,
+              san: d.state_update?.san || 0,
+              itemChanges: d.item_changes  // item_changes 是顶层字段
+            }
+          }
+          
+          // 处理隐藏标签的变化
+          if (d.new_hidden_tags && Array.isArray(d.new_hidden_tags)) {
+            d.new_hidden_tags.forEach((tag: string) => iceAgeStore.addHiddenTag(tag))
+          }
+          if (d.removed_hidden_tags && Array.isArray(d.removed_hidden_tags)) {
+            d.removed_hidden_tags.forEach((tag: string) => iceAgeStore.removeHiddenTag(tag))
           }
           
           iceAgeStore.addPendingDays([day])

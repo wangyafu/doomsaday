@@ -38,10 +38,16 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
 - 节奏张弛有度
 
 ## 叙事多样性要求
-- 非危机日：生存日志控制在 **50 字以内**，但内容类型应有变化（外出探索、避难所活动、天气变化、他人踪迹等轮换出现）
+- 非危机日：生存日志控制在 **100 字以内**，但内容类型应有变化（外出探索、避难所活动、天气变化、他人踪迹等轮换出现）
 - 危机日：生存日志可更长（100-200字），详细描写危机情境
-- 偶尔简略提及玩家看到/听到的其他人的踪迹
 - 用简短描写突出气温变化带来的真实体感
+
+### 叙事原则
+- 前后连贯：记住之前发生的事，让故事有因果
+- 状态驱动：玩家的HP/SAN会影响你的描写基调
+- 物品关联：玩家拥有的物品应该自然地出现在叙事中
+- 适度留白：给玩家想象空间，不要过度解释
+
 
 ## 情绪基调映射
 - SAN > 70：正常叙事
@@ -52,19 +58,29 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
 <task>
 ## 你的任务
 
-根据玩家当前状态，一次性生成5天的生存日志。
+结合玩家的状态、持有的物资、拥有的天赋、避难所的特性，生成后续的生存日志，直到出现新的危机事件为止。
 
 ### 输出格式
 请依次输出每天的日志，每一天用 <day_log> 标签包裹。
 
 <day_log>
-{{
+{{{{
   "day": 1,
   "temperature": 10,
   "narration": "...",
   "has_crisis": false,
-  "state_update": {{ ... }}
-}}
+  //如果有危机事件，这里还要有choices字段。
+  "state_update": {{{{
+    "hp":-10, //生命值的变化
+    "san":-5,//精神值的变化
+  }}}} 
+  "item_changes": {{{{
+    "remove": [],//消耗的物品
+    "add": []//新增的物品
+  }}}},
+  "new_hidden_tags": []//新增的隐藏标签
+  "removed_hidden_tags": []//移除的隐藏标签
+}}}}
 </day_log>
 
 <day_log>
@@ -77,12 +93,9 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
 ### 重要规则
 1. 不要输出最外层的 ```json 或 {{ "days": [...] }}
 2. 每天必须独立被 <day_log> 标签包裹
-3. 每天必须包含 day, temperature, narration
-4. **每天都必须包含 state_update**（无论是否有危机）
-5. 无危机天：has_crisis=false，只需要 state_update
-6. 有危机天：has_crisis=true，必须同时包含 choices（4个选项）和 state_update
-7. 约20-30%的天数有危机事件
-8. 有危机天：必须包含 choices 数组，数组中每个元素必须是包含 text 和 risk 的 JSON 对象：
+3. 每天必须包含 day, temperature, narration,has_crisis,state_update等字段。
+4. 约20-30%的天数有危机事件
+5. 有危机天：必须包含 choices 数组，数组中每个元素必须是包含 text 和 risk 的 JSON 对象：
    - text: 选项描述（如 "A. 搜索房屋"）
    - risk: 风险等级，只能是 "Low"(低)、"Medium"(中)、"High"(高)、"Extreme"(极高) 之一。
    <example>
@@ -91,7 +104,7 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
      {{"text": "B. 安全撤离", "risk": "Low"}}
    ]
    </example>
-9. **每天都必须在 state_update 中处理基础消耗**，在 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
+6. **每天都必须在 item_changes中处理基础消耗**，在 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
    - 食物消耗：移除 1 个【罐头】或【压缩饼干】等
    - 饮水消耗：移除 1 个【桶装水】
    - 燃料消耗：移除对应的【木柴】或【煤炭】
@@ -101,9 +114,7 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
      "add": []
    }}
    </example>
-10. **CRITICAL**: 如果某一天触发了危机事件 (`has_crisis: true`)，你必须在闭合该天的 `</day_log>` 标签后**立即停止生成**。绝对不要生成后续的日期。这是因为玩家的选择会改变未来的发展。
-   - 正确做法：Day N (Crisis) -> STOP
-   - 错误做法：Day N (Crisis) -> Day N+1 -> Day N+2...
+7.如果某一天触发了危机事件 (`has_crisis: true`)，你必须在闭合该天的 `</day_log>` 标签后**停止生成**。
 </task>
 
 <constraints>
@@ -183,7 +194,7 @@ def build_ice_age_narrator_prompt(
 ### 避难所
 {shelter_str}
 
-### 避难所特性（仅供AI参考，玩家不可见）
+### 避难所特性
 {shelter_hidden if shelter_hidden else '无特殊属性'}
 
 ### 背包物品
@@ -199,22 +210,6 @@ def build_ice_age_narrator_prompt(
 <instruction>
 请生成从第{start_day}天开始的{days_to_generate}天生存日志。
 
-注意：
-1. 第一天不要触发危机事件
-2. 缺少燃料、食物、饮水等，应根据规则扣减HP和SAN。
-3. **每天都必须生成 state_update**，包括有危机的日子。
-4. 每天必须在 state_update 的 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
-   - 食物消耗：移除 1 个【罐头】或【压缩饼干】等
-   - 饮水消耗：移除 1 个【桶装水】
-   - 燃料消耗：移除对应的【木柴】或【煤炭】（数量参考生存消耗标准）
-   示例：
-   "item_changes": {{
-     "remove": [{{"name": "罐头", "count": 1}}, {{"name": "桶装水", "count": 1}}, {{"name": "木柴", "count": 2}}],
-     "add": []
-   }}
-5. **有危机的日子**：state_update 只处理基础消耗（食物、水、燃料），不要预判玩家的选择结果。危机的后果由 Judge 判定。
-6. 如果玩家背包中某种生存物资耗尽，请在 narration 中描写玩家的窘迫处境并在 state_update 中扣除大幅 HP。
-7. 【重要】一旦生成了包含危机事件（has_crisis: true）的一天，请在输出该天的完整 JSON 后立即结束！不要生成后面几天的内容。
 
 请直接输出JSON格式的结果。
 </instruction>
