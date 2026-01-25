@@ -36,7 +36,12 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
 - 日记体/生存手记风格
 - 环境描写突出寒冷、冰雪、暴风
 - 节奏张弛有度
-- 没有危机事件的一天，生存日志控制在50字以内。
+
+## 叙事多样性要求
+- 非危机日：生存日志控制在 **50 字以内**，但内容类型应有变化（外出探索、避难所活动、天气变化、他人踪迹等轮换出现）
+- 危机日：生存日志可更长（100-200字），详细描写危机情境
+- 偶尔简略提及玩家看到/听到的其他人的踪迹
+- 用简短描写突出气温变化带来的真实体感
 
 ## 情绪基调映射
 - SAN > 70：正常叙事
@@ -133,6 +138,7 @@ def build_ice_age_narrator_prompt(
     
     # 格式化避难所
     shelter_str = "无避难所" if not shelter else f"{shelter.get('name', '未知')}"
+    shelter_hidden = "" if not shelter else shelter.get('hiddenDescription', '')
     
     # 格式化历史
     def format_history_item(h):
@@ -150,7 +156,7 @@ def build_ice_age_narrator_prompt(
         if action:
             item_str += f"\n  (玩家选择: {action})"
         if result:
-             # 结果通常比较重要，多保留一些
+    
             result_short = result
             item_str += f"\n  (判定后果: {result_short})"
             
@@ -176,6 +182,9 @@ def build_ice_age_narrator_prompt(
 
 ### 避难所
 {shelter_str}
+
+### 避难所特性（仅供AI参考，玩家不可见）
+{shelter_hidden if shelter_hidden else '无特殊属性'}
 
 ### 背包物品
 {inventory_str}

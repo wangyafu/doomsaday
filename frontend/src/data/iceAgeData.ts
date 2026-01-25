@@ -148,13 +148,13 @@ export const TALENT_POOL: IceAgeTalent[] = [
 // 冰河末世避难所
 export const ICE_AGE_SHELTERS: IceAgeShelter[] = [
     {
-        id: 'cabin',
-        name: '废弃小屋',
+        id: 'apartment',
+        name: '出租屋',
         price: 1000,
         space: 80,
         warmth: 1,
-        description: '漏风的木屋，空间勉强够用',
-        hiddenDescription: '防寒能力差，每天需要消耗较多燃料。但位置偏僻，不容易被其他幸存者发现。'
+        description: '城区老旧住宅，便宜但防寒差',
+        hiddenDescription: '防寒能力差，每天需要消耗较多燃料（2木柴或1煤）。位于城区老旧小区，人口密度高，容易遇到其他幸存者。可能触发事件：邻居敲门求助、楼道传来异响、发现楼上有人活动的迹象。'
     },
     {
         id: 'bunker',
@@ -163,16 +163,16 @@ export const ICE_AGE_SHELTERS: IceAgeShelter[] = [
         space: 150,
         warmth: 2,
         description: '恒温且宽大，长期居住影响情绪',
-        hiddenDescription: '地下恒温约10°C，大幅节省燃料。但封闭空间会导致SAN值缓慢下降。存储空间充裕。'
+        hiddenDescription: '地下恒温约10°C，燃料消耗低（1木柴即可）。但封闭空间会导致SAN值每天额外下降2点。防空洞曾是公共设施，可能有其他幸存者躲避于此。可能触发事件：发现其他幸存者的痕迹、深处传来响动、通风口需要清理。'
     },
     {
-        id: 'station',
-        name: '科研站残骸',
+        id: 'gasstation',
+        name: '废弃加油站',
         price: 5000,
-        space: 250,
-        warmth: 3,
-        description: '现代设施完备，空间极其宽敞',
-        hiddenDescription: '配备电力暖气系统，有燃料时极度温暖。空间巨大可容纳大量物资。目标明显，需注意防御。'
+        space: 200,
+        warmth: 2,
+        description: '城郊公路旁，有汽油储备',
+        hiddenDescription: '位于城郊公路旁的加油站，便利店区域可作为避难所。有少量汽油储备可用于取暖或交易。过路者较多，物资搜索机会多但也需警惕陌生人。可能触发事件：过路者停靠、便利店物资搜索、远处汽车引擎声、有人试图闯入加油。'
     }
 ]
 
