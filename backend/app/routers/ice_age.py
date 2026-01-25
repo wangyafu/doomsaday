@@ -158,6 +158,10 @@ async def narrate_batch_stream(request: IceAgeNarrateRequest):
                 # 记录日志
                 full_response = "".join(full_response_chunks)
                 log_api_call("ice-age/narrate-batch", request_data, full_response)
+                
+                # 打印AI输出摘要（生产环境也显示）
+                logger.info(f"[ICE_AGE/NARRATE] AI输出长度: {len(full_response)} 字符")
+                logger.info(f"[ICE_AGE/NARRATE] AI输出预览: {full_response}...")
                 logger.info("[ICE_AGE/NARRATE] 完成")
                 return  # 成功后退出
                 
@@ -259,6 +263,10 @@ async def judge_stream(request: IceAgeJudgeRequest):
                 # 记录日志
                 full_response = "".join(full_response_chunks)
                 log_api_call("ice-age/judge", request_data, full_response)
+                
+                # 打印AI输出摘要（生产环境也显示）
+                logger.info(f"[ICE_AGE/JUDGE] AI输出长度: {len(full_response)} 字符")
+                logger.info(f"[ICE_AGE/JUDGE] AI输出预览: {full_response}")
                 logger.info("[ICE_AGE/JUDGE] 完成")
                 return  # 成功后退出
                 
@@ -331,6 +339,10 @@ async def ending(request: IceAgeEndingRequest):
         
         # 记录日志
         log_api_call("ice-age/ending", request_data, json.dumps(response, ensure_ascii=False))
+        
+        # 打印AI输出摘要（生产环境也显示）
+        response_str = json.dumps(response, ensure_ascii=False)
+        logger.info(f"[ICE_AGE/ENDING] AI输出: {response_str}")
         logger.info("[ICE_AGE/ENDING] 完成")
         
         # 验证必需字段
