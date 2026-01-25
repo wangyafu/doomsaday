@@ -223,7 +223,6 @@ async function selectChoice(choice: string) {
 
     // 解析状态更新
     const { content, stateUpdate } = parseStateUpdate<{
-      score: number;
       stat_changes: { hp: number; san: number };
       item_changes?: { remove?: string[]; add?: string[] };
       new_hidden_tags?: string[];
@@ -552,7 +551,7 @@ onMounted(async () => {
             :disabled="isLoadingMore"
             @click="loadMoreDays"
           >
-            继续生存 (5天) →
+            继续生存
           </button>
         </div>
 

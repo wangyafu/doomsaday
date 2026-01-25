@@ -135,16 +135,19 @@ def format_ice_age_inventory(inventory: list[Any]) -> str:
     格式化背包物品
     兼容：list[dict] 和 list[InventoryItem]
     """
+    import json
     if not inventory:
-        return "背包空空如也"
+        return "[]"
     
-    items = []
+    formatted_items = []
     for item in inventory:
-        name = get_attr(item, 'name', '?')
-        count = get_attr(item, 'count', 1)
-        items.append(f"- {name} x{count}")
+        formatted_items.append({
+            "name": get_attr(item, 'name', '?'),
+            "count": get_attr(item, 'count', 1),
+            "hidden": get_attr(item, 'hidden', '') or ""
+        })
     
-    return "\n".join(items)
+    return json.dumps(formatted_items, ensure_ascii=False)
 
 def format_ice_age_talents(talents: list[Any] | None) -> str:
     """格式化天赋列表"""

@@ -72,13 +72,12 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
 ### 重要规则
 1. 不要输出最外层的 ```json 或 {{ "days": [...] }}
 2. 每天必须独立被 <day_log> 标签包裹
-
-### 重要规则
 3. 每天必须包含 day, temperature, narration
-4. 无危机天：has_crisis=false，必须包含 state_update
-5. 有危机天：has_crisis=true，必须包含 choices（4个选项），不需要 state_update
-6. 约20-30%的天数有危机事件
-7. 有危机天：必须包含 choices 数组，数组中每个元素必须是包含 text 和 risk 的 JSON 对象：
+4. **每天都必须包含 state_update**（无论是否有危机）
+5. 无危机天：has_crisis=false，只需要 state_update
+6. 有危机天：has_crisis=true，必须同时包含 choices（4个选项）和 state_update
+7. 约20-30%的天数有危机事件
+8. 有危机天：必须包含 choices 数组，数组中每个元素必须是包含 text 和 risk 的 JSON 对象：
    - text: 选项描述（如 "A. 搜索房屋"）
    - risk: 风险等级，只能是 "Low"(低)、"Medium"(中)、"High"(高)、"Extreme"(极高) 之一。
    <example>
@@ -87,7 +86,7 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
      {{"text": "B. 安全撤离", "risk": "Low"}}
    ]
    </example>
-8. 每天必须在 state_update 的 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
+9. **每天都必须在 state_update 中处理基础消耗**，在 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
    - 食物消耗：移除 1 个【罐头】或【压缩饼干】等
    - 饮水消耗：移除 1 个【桶装水】
    - 燃料消耗：移除对应的【木柴】或【煤炭】
@@ -97,7 +96,7 @@ ICE_AGE_NARRATOR_SYSTEM_PROMPT = f"""
      "add": []
    }}
    </example>
-9. **CRITICAL**: 如果某一天触发了危机事件 (`has_crisis: true`)，你必须在闭合该天的 `<day_log>` 标签后**立即停止生成**。绝对不要生成后续的日期。这是因为玩家的选择会改变未来的发展。
+10. **CRITICAL**: 如果某一天触发了危机事件 (`has_crisis: true`)，你必须在闭合该天的 `</day_log>` 标签后**立即停止生成**。绝对不要生成后续的日期。这是因为玩家的选择会改变未来的发展。
    - 正确做法：Day N (Crisis) -> STOP
    - 错误做法：Day N (Crisis) -> Day N+1 -> Day N+2...
 </task>
@@ -140,7 +139,7 @@ def build_ice_age_narrator_prompt(
         day_str = f"第{h.get('day', '?')}天"
         log_content = h.get('log', '')
         # 截取前60个字符作为摘要
-        log_summary = log_content[:60] + "..." if len(log_content) > 60 else log_content
+        log_summary = log_content
         
         item_str = f"{day_str}: {log_summary}"
         
@@ -152,7 +151,7 @@ def build_ice_age_narrator_prompt(
             item_str += f"\n  (玩家选择: {action})"
         if result:
              # 结果通常比较重要，多保留一些
-            result_short = result[:100] + "..." if len(result) > 100 else result
+            result_short = result
             item_str += f"\n  (判定后果: {result_short})"
             
         return item_str
@@ -194,7 +193,8 @@ def build_ice_age_narrator_prompt(
 注意：
 1. 第一天不要触发危机事件
 2. 缺少燃料、食物、饮水等，应根据规则扣减HP和SAN。
-3. 每天必须在 state_update 的 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
+3. **每天都必须生成 state_update**，包括有危机的日子。
+4. 每天必须在 state_update 的 item_changes.remove 中明确列出消耗的物品（名称必须与背包完全一致）：
    - 食物消耗：移除 1 个【罐头】或【压缩饼干】等
    - 饮水消耗：移除 1 个【桶装水】
    - 燃料消耗：移除对应的【木柴】或【煤炭】（数量参考生存消耗标准）
@@ -203,6 +203,7 @@ def build_ice_age_narrator_prompt(
      "remove": [{{"name": "罐头", "count": 1}}, {{"name": "桶装水", "count": 1}}, {{"name": "木柴", "count": 2}}],
      "add": []
    }}
+5. **有危机的日子**：state_update 只处理基础消耗（食物、水、燃料），不要预判玩家的选择结果。危机的后果由 Judge 判定。
 6. 如果玩家背包中某种生存物资耗尽，请在 narration 中描写玩家的窘迫处境并在 state_update 中扣除大幅 HP。
 7. 【重要】一旦生成了包含危机事件（has_crisis: true）的一天，请在输出该天的完整 JSON 后立即结束！不要生成后面几天的内容。
 

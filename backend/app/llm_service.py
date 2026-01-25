@@ -6,6 +6,8 @@ LLM 服务模块 - 封装 OpenAI API 调用
 2. chat_json(): JSON模式输出，用于状态更新，确保结构正确
 """
 import json
+from datetime import datetime
+from pathlib import Path
 from typing import AsyncGenerator
 from openai import AsyncOpenAI
 from app.config import get_settings
@@ -41,6 +43,37 @@ class LLMService:
             base_url=base_url
         )
         return client, model
+
+    def _save_context(self, role: str | None, system_prompt: str, user_prompt: str) -> None:
+        """
+        在开发环境下保存请求上下文到文件
+        """
+        if self.settings.is_production():
+            return
+
+        try:
+            # 确保日志目录存在
+            log_dir = Path("logs/llm_context")
+            log_dir.mkdir(parents=True, exist_ok=True)
+
+            # 生成文件名: YYYYMMDD_HHMMSS_role.txt
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            role_name = role or "default"
+            filename = f"{timestamp}_{role_name}.txt"
+            file_path = log_dir / filename
+
+            # 写入内容
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(f"=== Role: {role_name} ===\n")
+                f.write(f"=== Timestamp: {datetime.now().isoformat()} ===\n\n")
+                f.write("--- SYSTEM PROMPT ---\n")
+                f.write(system_prompt)
+                f.write("\n\n--- USER PROMPT ---\n")
+                f.write(user_prompt)
+                f.write("\n")
+        except Exception as e:
+            # 记录错误但不中断请求
+            print(f"[LLMService] 保存上下文失败: {e}")
     
     async def chat_stream(
         self,
@@ -61,6 +94,7 @@ class LLMService:
         Yields:
             逐块返回的文本内容
         """
+        self._save_context(role, system_prompt, user_prompt)
         client, model = self._get_client(role)
         stream = await client.chat.completions.create(
             model=model,
@@ -98,6 +132,7 @@ class LLMService:
         Raises:
             ValueError: 当LLM返回空内容或无效JSON时
         """
+        self._save_context(role, system_prompt, user_prompt)
         client, model = self._get_client(role)
         response = await client.chat.completions.create(
             model=model,
