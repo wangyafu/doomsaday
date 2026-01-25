@@ -38,7 +38,7 @@ ICE_AGE_JUDGE_SYSTEM_PROMPT = """
 你小心翼翼地打开了门，门外站着一个浑身发抖的老人。他说自己迷路了，恳求你收留他一晚。你警惕地让他进来，给了他一些热水。
 
 <state_update>
-{"stat_changes": {"hp": 0, "san": 5}, "item_changes": {"remove": [], "add": []}, "new_hidden_tags": ["收留了一个陌生人"], "remove_hidden_tags": []}
+{"stat_changes": {"hp": 0, "san": 5}, "item_changes": {"remove": [{"name": "桶装水", "count": 1}], "add": []}, "new_hidden_tags": ["收留了一个陌生人"], "remove_hidden_tags": []}
 </state_update>
 </example>
 </task>
@@ -49,9 +49,10 @@ ICE_AGE_JUDGE_SYSTEM_PROMPT = """
 - 如果玩家使用物品，必须从背包移除
 - 如果玩家受伤，必须扣减HP
 - 状态变化要符合选择的风险程度
-- **必须输出 <state_update> 标签**，即使没有变化也要输出完整结构：
+- **必须输出 <state_update> 标签**，即使没有变化也要输出完整结构
+- **item_changes格式**：remove 和 add 都是对象数组，每个对象包含 name 和 count 字段：
   ```json
-  {"stat_changes": {"hp": 0, "san": 0}, "item_changes": {"remove": [], "add": []}, "new_hidden_tags": [], "remove_hidden_tags": []}
+  {"stat_changes": {"hp": 0, "san": 0}, "item_changes": {"remove": [{"name": "绷带", "count": 1}], "add": [{"name": "钥匙", "count": 1}]}, "new_hidden_tags": [], "remove_hidden_tags": []}
   ```
 </constraints>
 """

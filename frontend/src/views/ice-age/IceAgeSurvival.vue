@@ -232,7 +232,10 @@ async function selectChoice(choice: string) {
     // 解析状态更新
     const { content, stateUpdate } = parseStateUpdate<{
       stat_changes: { hp: number; san: number };
-      item_changes?: { remove?: string[]; add?: string[] };
+      item_changes?: { 
+        remove?: Array<{name: string; count: number}>; 
+        add?: Array<{name: string; count: number}>
+      };
       new_hidden_tags?: string[];
       remove_hidden_tags?: string[];
     }>(fullText)
@@ -243,10 +246,16 @@ async function selectChoice(choice: string) {
         iceAgeStore.updateStats(stateUpdate.stat_changes)
       }
       if (stateUpdate.item_changes?.remove) {
-        stateUpdate.item_changes.remove.forEach(name => iceAgeStore.removeItem(name, 1))
+        stateUpdate.item_changes.remove.forEach(item => iceAgeStore.removeItem(item.name, item.count))
+      }
+      if (stateUpdate.item_changes?.add) {
+        stateUpdate.item_changes.add.forEach(item => iceAgeStore.addItem(item))
       }
       if (stateUpdate.new_hidden_tags) {
         stateUpdate.new_hidden_tags.forEach(tag => iceAgeStore.addHiddenTag(tag))
+      }
+      if (stateUpdate.remove_hidden_tags) {
+        stateUpdate.remove_hidden_tags.forEach(tag => iceAgeStore.removeHiddenTag(tag))
       }
     }
 
@@ -257,8 +266,8 @@ async function selectChoice(choice: string) {
       resourceChanges: stateUpdate ? {
           hp: stateUpdate.stat_changes?.hp || 0,
           san: stateUpdate.stat_changes?.san || 0,
-          itemsAdded: stateUpdate.item_changes?.add ? stateUpdate.item_changes.add.map(name => ({ name, count: 1 })) : undefined, // Check if 'add' is array of strings or objects. Based on 'remove', they seem like strings in judge parse, but narrate parse has objects
-          itemsRemoved: stateUpdate.item_changes?.remove ? stateUpdate.item_changes.remove.map(name => ({ name, count: 1 })) : undefined
+          itemsAdded: stateUpdate.item_changes?.add,
+          itemsRemoved: stateUpdate.item_changes?.remove
       } : undefined
     })
     
@@ -537,7 +546,23 @@ onMounted(async () => {
           <template v-if="log.playerAction">
             <div class="border-t border-gray-700 pt-3 mt-3">
               <p class="text-cyan-400 text-sm mb-1">你的选择：{{ log.playerAction }}</p>
-              <p class="text-gray-300 italic">{{ log.result }}</p>
+              <p class="text-gray-300 italic mb-3">{{ log.result }}</p>
+              
+              <!-- 判定后的资源变化显示 -->
+              <div v-if="log.resourceChanges" class="flex flex-wrap gap-2 text-xs mt-2">
+                 <span v-if="log.resourceChanges.hp !== 0" :class="log.resourceChanges.hp > 0 ? 'text-green-400' : 'text-red-400'" class="bg-gray-900/50 px-2 py-1 rounded">
+                    {{ log.resourceChanges.hp > 0 ? '+' : '' }}{{ log.resourceChanges.hp }} ❤️
+                 </span>
+                 <span v-if="log.resourceChanges.san !== 0" :class="log.resourceChanges.san > 0 ? 'text-green-400' : 'text-red-400'" class="bg-gray-900/50 px-2 py-1 rounded">
+                    {{ log.resourceChanges.san > 0 ? '+' : '' }}{{ log.resourceChanges.san }} 🧠
+                 </span>
+                 <span v-for="item in log.resourceChanges.itemsRemoved" :key="'rm-' + item.name" class="text-red-300 bg-red-900/20 px-2 py-1 rounded border border-red-900/30">
+                    -{{ item.count }} {{ item.name }}
+                 </span>
+                 <span v-for="item in log.resourceChanges.itemsAdded" :key="'add-' + item.name" class="text-green-300 bg-green-900/20 px-2 py-1 rounded border border-green-900/30">
+                    +{{ item.count }} {{ item.name }}
+                 </span>
+              </div>
             </div>
           </template>
         </div>

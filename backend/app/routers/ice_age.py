@@ -127,29 +127,63 @@ async def narrate_batch_stream(request: IceAgeNarrateRequest):
     full_response_chunks = []
     request_data = format_request_for_log(request)
     
+    # 重试配置
+    MAX_RETRIES = 3
+    
     async def generate():
-        try:
-            full_text = ""
-            async for chunk in llm_service.chat_stream(
-                system_prompt=ICE_AGE_NARRATOR_SYSTEM_PROMPT,
-                user_prompt=user_prompt,
-                temperature=0.8
-            ):
-                full_text += chunk
-                full_response_chunks.append(chunk)
-                yield format_sse_event("content", {"text": chunk})
-            
-            yield format_sse_event("done", {"full_text": full_text})
-            
-            # 记录日志
-            full_response = "".join(full_response_chunks)
-            log_api_call("ice-age/narrate-batch", request_data, full_response)
-            logger.info("[ICE_AGE/NARRATE] 完成")
-            
-        except Exception as e:
-            logger.error(f"[ICE_AGE/NARRATE] 错误: {e}")
-            log_api_call("ice-age/narrate-batch", request_data, error=str(e))
-            yield format_sse_event("error", {"error": str(e)})
+        for attempt in range(MAX_RETRIES):
+            try:
+                # 每次重试稍微调整 temperature 增加随机性
+                temperature = 0.8 - (attempt * 0.1)  # 0.8, 0.7, 0.6
+                
+                if attempt > 0:
+                    logger.warning(f"[ICE_AGE/NARRATE] 第 {attempt + 1} 次尝试 (temperature={temperature})")
+                    yield format_sse_event("retry", {"attempt": attempt + 1, "max_retries": MAX_RETRIES})
+                
+                full_text = ""
+                full_response_chunks.clear()  # 清空之前的尝试
+                
+                async for chunk in llm_service.chat_stream(
+                    system_prompt=ICE_AGE_NARRATOR_SYSTEM_PROMPT,
+                    user_prompt=user_prompt,
+                    temperature=temperature
+                ):
+                    full_text += chunk
+                    full_response_chunks.append(chunk)
+                    yield format_sse_event("content", {"text": chunk})
+                
+                # 成功完成
+                yield format_sse_event("done", {"full_text": full_text})
+                
+                # 记录日志
+                full_response = "".join(full_response_chunks)
+                log_api_call("ice-age/narrate-batch", request_data, full_response)
+                logger.info("[ICE_AGE/NARRATE] 完成")
+                return  # 成功后退出
+                
+            except Exception as e:
+                error_msg = str(e)
+                
+                # 检查是否是内容安全错误
+                is_content_error = "inappropriate content" in error_msg.lower()
+                
+                # 如果是内容安全错误且还有重试次数
+                if is_content_error and attempt < MAX_RETRIES - 1:
+                    logger.warning(f"[ICE_AGE/NARRATE] 内容安全检查失败，准备重试 ({attempt + 1}/{MAX_RETRIES})")
+                    continue  # 继续下一次重试
+                
+                # 如果不是内容安全错误，或者已达到最大重试次数
+                logger.error(f"[ICE_AGE/NARRATE] 错误: {e}")
+                log_api_call("ice-age/narrate-batch", request_data, error=error_msg)
+                
+                if is_content_error and attempt >= MAX_RETRIES - 1:
+                    yield format_sse_event("error", {
+                        "error": f"经过 {MAX_RETRIES} 次尝试，仍然遇到内容安全检查。请稍后重试。",
+                        "original_error": error_msg
+                    })
+                else:
+                    yield format_sse_event("error", {"error": error_msg})
+                return
     
     return StreamingResponse(
         generate(),
@@ -194,29 +228,63 @@ async def judge_stream(request: IceAgeJudgeRequest):
     request_data = format_request_for_log(request)
     request_data['luck_value'] = luck_value # 记录运气值
     
+    # 重试配置
+    MAX_RETRIES = 3
+    
     async def generate():
-        try:
-            full_text = ""
-            async for chunk in llm_service.chat_stream(
-                system_prompt=ICE_AGE_JUDGE_SYSTEM_PROMPT,
-                user_prompt=user_prompt,
-                temperature=0.7
-            ):
-                full_text += chunk
-                full_response_chunks.append(chunk)
-                yield format_sse_event("content", {"text": chunk})
-            
-            yield format_sse_event("done", {"full_text": full_text})
-            
-            # 记录日志
-            full_response = "".join(full_response_chunks)
-            log_api_call("ice-age/judge", request_data, full_response)
-            logger.info("[ICE_AGE/JUDGE] 完成")
-            
-        except Exception as e:
-            logger.error(f"[ICE_AGE/JUDGE] 错误: {e}")
-            log_api_call("ice-age/judge", request_data, error=str(e))
-            yield format_sse_event("error", {"error": str(e)})
+        for attempt in range(MAX_RETRIES):
+            try:
+                # 每次重试稍微调整 temperature 增加随机性
+                temperature = 0.7 - (attempt * 0.1)  # 0.7, 0.6, 0.5
+                
+                if attempt > 0:
+                    logger.warning(f"[ICE_AGE/JUDGE] 第 {attempt + 1} 次尝试 (temperature={temperature})")
+                    yield format_sse_event("retry", {"attempt": attempt + 1, "max_retries": MAX_RETRIES})
+                
+                full_text = ""
+                full_response_chunks.clear()  # 清空之前的尝试
+                
+                async for chunk in llm_service.chat_stream(
+                    system_prompt=ICE_AGE_JUDGE_SYSTEM_PROMPT,
+                    user_prompt=user_prompt,
+                    temperature=temperature
+                ):
+                    full_text += chunk
+                    full_response_chunks.append(chunk)
+                    yield format_sse_event("content", {"text": chunk})
+                
+                # 成功完成
+                yield format_sse_event("done", {"full_text": full_text})
+                
+                # 记录日志
+                full_response = "".join(full_response_chunks)
+                log_api_call("ice-age/judge", request_data, full_response)
+                logger.info("[ICE_AGE/JUDGE] 完成")
+                return  # 成功后退出
+                
+            except Exception as e:
+                error_msg = str(e)
+                
+                # 检查是否是内容安全错误
+                is_content_error = "inappropriate content" in error_msg.lower()
+                
+                # 如果是内容安全错误且还有重试次数
+                if is_content_error and attempt < MAX_RETRIES - 1:
+                    logger.warning(f"[ICE_AGE/JUDGE] 内容安全检查失败，准备重试 ({attempt + 1}/{MAX_RETRIES})")
+                    continue  # 继续下一次重试
+                
+                # 如果不是内容安全错误，或者已达到最大重试次数
+                logger.error(f"[ICE_AGE/JUDGE] 错误: {e}")
+                log_api_call("ice-age/judge", request_data, error=error_msg)
+                
+                if is_content_error and attempt >= MAX_RETRIES - 1:
+                    yield format_sse_event("error", {
+                        "error": f"经过 {MAX_RETRIES} 次尝试，仍然遇到内容安全检查。请稍后重试。",
+                        "original_error": error_msg
+                    })
+                else:
+                    yield format_sse_event("error", {"error": error_msg})
+                return
     
     return StreamingResponse(
         generate(),
