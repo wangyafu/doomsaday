@@ -187,7 +187,7 @@ onMounted(() => {
           <span class="text-4xl">❄️</span>
           <div>
             <h2 class="text-xl font-bold text-cyan-400">冰河末世</h2>
-            <p class="text-gray-400 text-sm">极寒来袭，存活50天</p>
+            <p class="text-gray-400 text-sm">极寒来袭，存活40天</p>
             <span class="inline-block mt-1 px-2 py-0.5 text-xs bg-cyan-600/30 text-cyan-300 rounded">NEW</span>
           </div>
         </div>

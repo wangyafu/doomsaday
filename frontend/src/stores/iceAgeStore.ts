@@ -116,7 +116,7 @@ export const useIceAgeStore = defineStore('iceAge', () => {
     // 游戏是否结束（HP 或 SAN 归零）
     const isGameOver = computed(() => stats.value.hp <= 0 || stats.value.san <= 0)
 
-    // 是否通关（存活超过50天）
+    // 是否通关（存活超过40天）
     const isVictory = computed(() => day.value > 40)
 
     // 当前气温（根据天数计算）

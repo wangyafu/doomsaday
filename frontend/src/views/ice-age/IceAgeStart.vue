@@ -159,7 +159,7 @@ onMounted(() => {
       <div v-else class="animate-fade-in-up space-y-12">
         <div class="space-y-4">
           <h1 class="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-blue-600 drop-shadow-lg">
-            50天
+            40天
           </h1>
           <p class="text-2xl text-cyan-200 font-light tracking-[0.5em] uppercase">
             生存目标
