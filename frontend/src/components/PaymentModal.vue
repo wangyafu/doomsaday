@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useGameStore } from '@/stores/gameStore'
-import wechatQrcode from '@/assets/微信一元收款码.png'
-import alipayQrcode from '@/assets/支付宝一元收款码.jpg'
+import wechatQrcode from '@/assets/微信收款码.png'
+import alipayQrcode from '@/assets/支付宝收款码.jpg'
 
 defineProps<{
   show: boolean
@@ -70,8 +70,7 @@ function handleCancel() {
               我是独立开发者，正在自费维持这个世界。如果你觉得这个游戏有价值，请投出一张"信任票"。
             </p>
             <div class="text-center py-1">
-              <p class="text-lg font-bold text-white">只需 <span class="text-yellow-500 text-xl">￥1.00</span></p>
-              <p class="text-xs text-gray-500">(相当于分担 6 局API费用)</p>
+              <p class="text-lg font-bold text-white">随心支持，<span class="text-yellow-500 text-xl">金额随意</span></p>
             </div>
             <p class="text-xs text-center font-bold text-green-500">今日无限畅玩 + 🎒【信任物资包】</p>
           </div>
@@ -110,7 +109,7 @@ function handleCancel() {
                 />
               </div>
               <p class="text-xs text-gray-400">
-                扫描二维码支持 <span class="text-yellow-500 font-bold">1.00</span> 元
+                扫描二维码<span class="text-yellow-500 font-bold">随心支持</span>
               </p>
             </div>
           </div>
@@ -122,7 +121,7 @@ function handleCancel() {
               :disabled="isVerifying || showSuccess"
               class="relative w-full py-3 bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-700 text-black font-bold rounded transition-all active:scale-95 overflow-hidden"
             >
-              <span v-if="!isVerifying && !showSuccess">✅ 我已支付 1.00元，接入无限模式</span>
+              <span v-if="!isVerifying && !showSuccess">✅ 我已支付，接入无限模式</span>
               <span v-else-if="isVerifying" class="flex items-center justify-center gap-2">
                 <svg class="animate-spin h-5 w-5 text-black" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
