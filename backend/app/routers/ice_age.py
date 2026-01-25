@@ -322,6 +322,7 @@ async def ending(request: IceAgeEndingRequest):
     )
     
     try:
+        # chat() 方法返回的已经是 dict，无需再次解析
         response = await llm_service.chat(
             system_prompt=ICE_AGE_ENDING_SYSTEM_PROMPT,
             user_prompt=user_prompt,
@@ -329,30 +330,24 @@ async def ending(request: IceAgeEndingRequest):
         )
         
         # 记录日志
-        log_api_call("ice-age/ending", request_data, response)
+        log_api_call("ice-age/ending", request_data, json.dumps(response, ensure_ascii=False))
         logger.info("[ICE_AGE/ENDING] 完成")
         
-        # 尝试解析JSON
-        try:
-            # 提取JSON部分
-            import re
-            json_match = re.search(r'\{[\s\S]*\}', response)
-            if json_match:
-                result = json.loads(json_match.group())
-                return result
-            else:
-                # 返回默认值
-                return {
-                    "cause_of_death": "未知原因" if not request.is_victory else None,
-                    "epithet": "冰原旅人",
-                    "comment": response[:100] if response else "你的冰原之旅结束了。",
-                    "radar_chart": [5, 5, 5, 5, 5]
-                }
-        except json.JSONDecodeError:
+        # 验证必需字段
+        if isinstance(response, dict):
+            # 确保包含所有必需字段
+            return {
+                "cause_of_death": response.get("cause_of_death"),
+                "epithet": response.get("epithet", "冰原旅人"),
+                "comment": response.get("comment", "你的冰原之旅结束了。"),
+                "radar_chart": response.get("radar_chart", [5, 5, 5, 5, 5])
+            }
+        else:
+            # 如果返回的不是字典，使用默认值
             return {
                 "cause_of_death": "未知原因" if not request.is_victory else None,
                 "epithet": "冰原旅人",
-                "comment": response[:100] if response else "你的冰原之旅结束了。",
+                "comment": "你的冰原之旅结束了。",
                 "radar_chart": [5, 5, 5, 5, 5]
             }
             

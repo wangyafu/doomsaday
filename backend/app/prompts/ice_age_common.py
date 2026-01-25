@@ -89,6 +89,7 @@ ICE_AGE_MECHANICS = """
    - 【虚弱】: 长期饥饿或极度疲劳。
      - 无法进行高体力消耗活动（如伐木、远行）。
    - **切记**: 状态具有持续性，除非明确移除，否则第二天依然存在并持续产生负面效果。
+   - 这些状态通过new_hidden_tags和remove_hidden_tags来维护。
 </mechanics>
 """
 
