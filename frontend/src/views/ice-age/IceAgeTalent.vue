@@ -43,11 +43,7 @@ function proceed() {
   router.push('/ice-age/shelter')
 }
 
-function refreshTalents() {
-  // 重新随机抽取
-  availableTalents.value = getRandomTalents(10)
-  selectedIds.value = new Set()
-}
+
 </script>
 
 <template>
@@ -121,12 +117,7 @@ function refreshTalents() {
 
       <!-- 操作按钮 -->
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <button
-          class="px-6 py-3 bg-gray-700 rounded-lg text-gray-300 hover:bg-gray-600 transition"
-          @click="refreshTalents"
-        >
-          🔄 重新抽取
-        </button>
+
         
         <button
           class="px-8 py-3 rounded-lg font-bold text-lg transition-all"
