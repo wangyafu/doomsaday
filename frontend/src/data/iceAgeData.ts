@@ -99,7 +99,7 @@ export const TALENT_POOL: IceAgeTalent[] = [
         name: '厚脸皮',
         icon: '😎',
         description: '你不太在意别人的看法',
-        hiddenDescription: '减少因道德困境或负面事件导致的SAN损失'
+        hiddenDescription: '不会因道德困境或负面事件产生SAN损失'
     },
     {
         id: 'hoarder',

@@ -120,23 +120,23 @@ export const useIceAgeStore = defineStore('iceAge', () => {
     const isVictory = computed(() => day.value > 40)
 
     // 当前气温（根据天数计算）
-    // 第1天约10°C → 第10天0°C → 第20天-30°C → 第30天后稳定-40°C
+    // 逻辑对齐 backend/app/prompts/ice_age_common.py
     const currentTemperature = computed(() => {
-        if (day.value <= 1) return 10
-        if (day.value <= 10) {
-            // 第1-10天：10°C → 0°C（每天降1°C）
-            return 10 - (day.value - 1)
+        let base = -5
+        if (day.value <= 1) {
+            base = -5
+        } else if (day.value <= 10) {
+            // 第1-10天：-5°C → -25°C
+            base = -5 - Math.floor((day.value - 1) * 2.2)
+        } else if (day.value <= 20) {
+            // 第10-20天：-25°C → -40°C
+            base = -25 - Math.floor((day.value - 10) * 1.5)
+        } else {
+            // 第20天以后：持续下降至 -55°C
+            base = -40 - Math.floor((day.value - 20) * 0.5)
+            if (base < -55) base = -55
         }
-        if (day.value <= 20) {
-            // 第10-20天：0°C → -30°C（每天降3°C）
-            return 0 - (day.value - 10) * 3
-        }
-        if (day.value <= 30) {
-            // 第20-30天：-30°C → -40°C（每天降1°C）
-            return -30 - (day.value - 20)
-        }
-        // 第30天后：稳定在-40°C
-        return -40
+        return base
     })
 
     // ==================== 方法 ====================

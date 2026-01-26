@@ -55,7 +55,7 @@ async function generateEnding() {
     // 备用结局
     if (isVictory.value) {
       epithet.value = '冰原幸存者'
-      comment.value = `在零下四十度的极寒中存活了${iceAgeStore.day}天，你是真正的生存专家！`
+      comment.value = `在极寒环境中存活了${iceAgeStore.day}天，你是真正的生存专家！`
       causeOfDeath.value = null
       radarChart.value = [8, 7, 6, 5, 7]
     } else {
