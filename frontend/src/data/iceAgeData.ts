@@ -142,6 +142,20 @@ export const TALENT_POOL: IceAgeTalent[] = [
         icon: '💎',
         description: '你的意志力坚不可摧',
         hiddenDescription: '当HP低于20时获得防御加成，不会轻易倒下'
+    },
+    {
+        id: 'tycoon',
+        name: '大富翁',
+        icon: '💰',
+        description: '你家境优渥，带了更多资金',
+        hiddenDescription: '初始资金增加2000'
+    },
+    {
+        id: 'gluttony',
+        name: '大胃袋',
+        icon: '🍱',
+        description: '你的身体能储存更多能量',
+        hiddenDescription: '对饥饿有极高的耐受力，连续三天以上饥饿（不消耗食物）才会开始扣减HP值'
     }
 ]
 

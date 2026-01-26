@@ -190,6 +190,9 @@ export const useIceAgeStore = defineStore('iceAge', () => {
             if (talent.id === 'hoarder') {
                 // 空间加成会在避难所选择后生效
             }
+            if (talent.id === 'tycoon') {
+                money.value += 2000
+            }
         })
     }
 
