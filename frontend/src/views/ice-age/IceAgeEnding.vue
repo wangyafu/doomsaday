@@ -253,11 +253,15 @@ onMounted(() => {
       <div class="space-y-3">
         <button 
           class="w-full py-4 bg-cyan-600 rounded-lg font-bold text-lg
-                 hover:bg-cyan-500 transition-all"
+                 hover:bg-cyan-500 transition-all shadow-lg hover:shadow-cyan-500/50 relative overflow-hidden group"
           @click="generateShareImage"
         >
-          📸 生成分享图片
+          <span class="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
+          <span class="relative">📸 生成分享图片</span>
         </button>
+        <p class="text-xs text-center text-cyan-400/80 mt-1 mb-4">
+          ✨ 快到小红书分享你的求生经历！
+        </p>
         
         <button 
           class="w-full py-4 bg-blue-600 rounded-lg font-bold
