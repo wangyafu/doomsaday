@@ -3,8 +3,6 @@ import type {
   InventoryItem,
   HistoryEntry,
   Shelter,
-  NarrateStateResponse,
-  JudgeStateResponse,
   EndingResponse,
   ArchiveRecord,
 } from "@/types";
@@ -178,7 +176,59 @@ export async function* narrateStream(params: {
     }
   }
 }
-// ...(filterHiddenContent, formatOptionsContent, parseNarrativeChoices functions omitted but preserved in file)...
+/**
+ * 过滤隐藏标签（<hidden>、<state_update>、<options>）
+ * 用户不应在叙事正文中看到这些原始标签
+ */
+export function filterHiddenContent(text: string): string {
+  return text
+    .replace(/<hidden>[\s\S]*?<\/hidden>/gi, "")
+    .replace(/<state_update>[\s\S]*?<\/state_update>/gi, "")
+    .replace(/<options>[\s\S]*?<\/options>/gi, "")
+    .trim();
+}
+
+/**
+ * 格式化选项内容（可选，用于美化展示）
+ */
+export function formatOptionsContent(optionsRaw: string): string[] {
+  return optionsRaw
+    .split(/\n/)
+    .map(line => line.replace(/^[A-Z][.、\s]*/i, "").trim())
+    .filter(Boolean);
+}
+
+/**
+ * 解析叙事选项和状态更新
+ */
+export function parseNarrativeChoices(text: string) {
+  const optionsMatch = text.match(/<options>([\s\S]*?)<\/options>/i);
+  const stateUpdateMatch = text.match(/<state_update>([\s\S]*?)<\/state_update>/i);
+
+  let choices: string[] = [];
+  let hasCrisis = false;
+  let stateUpdate = null;
+
+  if (optionsMatch) {
+    hasCrisis = true;
+    choices = formatOptionsContent(optionsMatch[1]);
+  }
+
+  if (stateUpdateMatch) {
+    try {
+      stateUpdate = JSON.parse(stateUpdateMatch[1].trim());
+    } catch (e) {
+      console.error("解析状态更新失败:", e);
+    }
+  }
+
+  return {
+    logText: filterHiddenContent(text),
+    hasCrisis,
+    choices,
+    stateUpdate
+  };
+}
 
 /**
  * 行动判定 - 流式输出判定叙事
@@ -249,7 +299,26 @@ export async function* judgeStream(params: {
   }
 }
 
-// ...(parseJudgeResult function omitted but preserved in file)...
+/**
+ * 解析判定结果和状态更新
+ */
+export function parseJudgeResult(text: string) {
+  const stateUpdateMatch = text.match(/<state_update>([\s\S]*?)<\/state_update>/i);
+  let stateUpdate = null;
+
+  if (stateUpdateMatch) {
+    try {
+      stateUpdate = JSON.parse(stateUpdateMatch[1].trim());
+    } catch (e) {
+      console.error("解析状态更新失败:", e);
+    }
+  }
+
+  return {
+    narrativeText: filterHiddenContent(text),
+    stateUpdate
+  };
+}
 
 /**
  * 结局结算
