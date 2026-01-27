@@ -88,7 +88,7 @@ DEBUG=True
 ENVIRONMENT=development
 
 # 流量控制 (可选)
-MAX_PUBLIC_USERS=3      # 最大同时在线人数
+MAX_PUBLIC_USERS=10      # 最大同时在线人数
 
 ```
 
