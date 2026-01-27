@@ -80,6 +80,57 @@ export function getSessionToken(): string | null {
 }
 
 /**
+ * 带有自动刷新能力的 fetch 包装器
+ * 用于在遇到 401 错误时静默刷新 Token 并重试
+ */
+async function safeFetch(url: string, options: RequestInit = {}, retryCount = 0): Promise<Response> {
+  const response = await fetch(url, options);
+
+  // 如果遇到 401 且还可以重试
+  if (response.status === 401 && retryCount < 1) {
+    console.warn("🔑 [API] 令牌已过期，正在尝试自动刷新并重试...");
+    try {
+      // 这里的 checkAccess 会更新全局 sessionToken
+      await checkAccess();
+      const newToken = getSessionToken();
+      if (!newToken) return response;
+
+      // 如果原来是通过 Query 参数传递的 token，则更新它
+      let nextUrl = url;
+      if (url.includes("token=")) {
+        try {
+          // 使用 URLSearchParams 处理以确保兼容性
+          const [baseUrl, search] = url.split('?');
+          const params = new URLSearchParams(search);
+          params.set("token", newToken);
+          nextUrl = `${baseUrl}?${params.toString()}`;
+        } catch (e) {
+          console.warn("⚠️ URL 解析失败，无法更新 Token:", e);
+        }
+      }
+
+      // 如果原来是通过 Header 传递的 token，则更新它
+      const nextOptions = { ...options };
+      if (nextOptions.headers) {
+        const headers = new Headers(nextOptions.headers);
+        if (headers.has("X-Game-Token")) {
+          headers.set("X-Game-Token", newToken);
+        }
+        nextOptions.headers = headers;
+      }
+
+      // 递归调用，重试次数 +1
+      return safeFetch(nextUrl, nextOptions, retryCount + 1);
+    } catch (e) {
+      console.error("❌ [API] 自动刷新令牌失败:", e);
+      return response; // 还是返回原始的 401
+    }
+  }
+
+  return response;
+}
+
+/**
  * 检查访问权限
  */
 export async function checkAccess(): Promise<{ token: string; type: string; message: string }> {
@@ -125,7 +176,7 @@ export async function* narrateStream(params: {
   if (!token) throw new Error("NO_TOKEN");
 
   // 将 Token 放在 Query 参数中 (SSE 标准兼容性更好)
-  const response = await fetch(`${API_BASE}/game/narrate/stream?token=${encodeURIComponent(token)}`, {
+  const response = await safeFetch(`${API_BASE}/game/narrate/stream?token=${encodeURIComponent(token)}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -251,7 +302,7 @@ export async function* judgeStream(params: {
   const token = getSessionToken();
   if (!token) throw new Error("NO_TOKEN");
 
-  const response = await fetch(`${API_BASE}/game/judge/stream?token=${encodeURIComponent(token)}`, {
+  const response = await safeFetch(`${API_BASE}/game/judge/stream?token=${encodeURIComponent(token)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
@@ -336,7 +387,7 @@ export async function ending(params: {
   const token = getSessionToken();
   if (!token) throw new Error("NO_TOKEN");
 
-  const response = await fetch(`${API_BASE}/game/ending`, {
+  const response = await safeFetch(`${API_BASE}/game/ending`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -371,7 +422,7 @@ export async function submitArchive(params: {
 }): Promise<ArchiveRecord> {
   logRequest("POST /archive/submit", params);
 
-  const response = await fetch(`${API_BASE}/archive/submit`, {
+  const response = await safeFetch(`${API_BASE}/archive/submit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
@@ -388,7 +439,7 @@ export async function submitArchive(params: {
  * 获取末世档案列表
  */
 export async function getArchives(limit: number = 20): Promise<ArchiveRecord[]> {
-  const response = await fetch(`${API_BASE}/archive/list?limit=${limit}`);
+  const response = await safeFetch(`${API_BASE}/archive/list?limit=${limit}`);
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
@@ -413,9 +464,12 @@ export async function* iceAgeNarrateStream(params: {
   shelter?: { id: string; name: string; warmth: number } | null;
   talents?: { id: string; name: string; hiddenDescription: string }[] | null;
 }): AsyncGenerator<string, void, unknown> {
-  logRequest("POST /ice-age/narrate-batch/stream", params);
+  const token = getSessionToken();
+  const url = token
+    ? `${API_BASE}/ice-age/narrate-batch/stream?token=${encodeURIComponent(token)}`
+    : `${API_BASE}/ice-age/narrate-batch/stream`;
 
-  const response = await fetch(`${API_BASE}/ice-age/narrate-batch/stream`, {
+  const response = await safeFetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
@@ -471,9 +525,12 @@ export async function* iceAgeJudgeStream(params: {
   inventory: { name: string; count: number }[];
   talents?: { id: string; name: string }[] | null;
 }): AsyncGenerator<string, void, unknown> {
-  logRequest("POST /ice-age/judge/stream", params);
+  const token = getSessionToken();
+  const url = token
+    ? `${API_BASE}/ice-age/judge/stream?token=${encodeURIComponent(token)}`
+    : `${API_BASE}/ice-age/judge/stream`;
 
-  const response = await fetch(`${API_BASE}/ice-age/judge/stream`, {
+  const response = await safeFetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
@@ -535,11 +592,13 @@ export async function iceAgeEnding(params: {
   history: { day: number; log: string; player_action?: string; judge_result?: string }[];
   talents?: { id: string; name: string }[] | null;
 }): Promise<IceAgeEndingResponse> {
-  logRequest("POST /ice-age/ending", params);
-
-  const response = await fetch(`${API_BASE}/ice-age/ending`, {
+  const token = getSessionToken();
+  const response = await safeFetch(`${API_BASE}/ice-age/ending`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "X-Game-Token": token } : {})
+    },
     body: JSON.stringify(params),
   });
 
