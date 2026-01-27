@@ -24,6 +24,7 @@ from app.models import (
     NarrateRequest,
     JudgeRequest,
     EndingRequest, EndingResponse,
+    AccessCheckRequest, AccessCheckResponse,
 )
 from app.prompts import (
     NARRATOR_NARRATIVE_SYSTEM_PROMPT,
@@ -34,6 +35,8 @@ from app.prompts import (
 )
 from app.llm_service import get_llm_service
 from app.moderator_service import get_moderator_service
+from app.core.traffic_control import traffic_controller
+from fastapi import Header, Query, status
 
 router = APIRouter(prefix="/api/game", tags=["game"])
 
@@ -74,10 +77,57 @@ def parse_narrative_choices(text: str) -> tuple[str, bool, list[str] | None]:
     return text.strip(), False, None
 
 
+# ==================== Access 接口 ====================
+
+@router.post("/access", response_model=AccessCheckResponse)
+async def check_access(request: AccessCheckRequest):
+    """
+    检查访问权限并获取令牌
+    """
+    try:
+        token = traffic_controller.try_join()
+        session_type = traffic_controller.sessions[token].type
+        return AccessCheckResponse(
+            token=token,
+            type=session_type,
+            message="欢迎进入末世模拟器"
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e)
+        )
+
+
+def verify_token(x_game_token: str | None = Header(None, alias="X-Game-Token"), token: str | None = Query(None)):
+    """
+    依赖注入：验证 Token
+    优先从 Header 获取，其次从 Query 参数获取
+    """
+    actual_token = x_game_token or token
+    if not actual_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="缺少访问令牌"
+        )
+    
+    if not traffic_controller.verify_session(actual_token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="会话已过期或无效，请重新连接"
+        )
+    return actual_token
+
+
 # ==================== Narrate 接口 ====================
 
 @router.post("/narrate/stream")
-async def narrate_stream(request: NarrateRequest):
+async def narrate_stream(
+    request: NarrateRequest,
+    token: str = Query(None, description="会话令牌")  # SSE 通常使用 Query 参数传递 Token
+):
+    # 验证 Token
+    verify_token(token=token)
     """
     每日剧情生成 - 流式输出叙事内容
     
@@ -167,7 +217,12 @@ async def narrate_stream(request: NarrateRequest):
 # ==================== Judge 接口 ====================
 
 @router.post("/judge/stream")
-async def judge_stream(request: JudgeRequest):
+async def judge_stream(
+    request: JudgeRequest,
+    token: str = Query(None, description="会话令牌")
+):
+    # 验证 Token
+    verify_token(token=token)
     """
     行动判定 - 流式输出判定叙事
     
@@ -270,7 +325,12 @@ async def judge_stream(request: JudgeRequest):
 # ==================== Ending 接口 ====================
 
 @router.post("/ending", response_model=EndingResponse)
-async def ending(request: EndingRequest) -> EndingResponse:
+async def ending(
+    request: EndingRequest,
+    x_game_token: str = Header(None, alias="X-Game-Token")
+) -> EndingResponse:
+    # 验证 Token
+    verify_token(x_game_token=x_game_token)
     """
     结局结算接口
     

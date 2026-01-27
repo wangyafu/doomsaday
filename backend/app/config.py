@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     debug: bool = False
     environment: str = "development"  # development 或 production
     
+    # 流量控制配置
+    MAX_PUBLIC_USERS: int = 1
+    SESSION_TIMEOUT_SECONDS: int = 600
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

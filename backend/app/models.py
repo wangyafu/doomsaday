@@ -154,3 +154,15 @@ class StreamEvent(BaseModel):
 #   "new_hidden_tags": [...],
 #   "remove_hidden_tags": [...]
 # }
+# ==================== 访问控制模型 ====================
+
+class AccessCheckRequest(BaseModel):
+    """访问检查请求"""
+    pass
+
+
+class AccessCheckResponse(BaseModel):
+    """访问检查响应"""
+    token: str = Field(..., description="会话令牌")
+    type: str = Field(..., description="会话类型：public")
+    message: str = Field(..., description="提示信息")
