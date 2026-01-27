@@ -99,24 +99,7 @@ async def check_access(request: AccessCheckRequest):
         )
 
 
-def verify_token(x_game_token: str | None = Header(None, alias="X-Game-Token"), token: str | None = Query(None)):
-    """
-    依赖注入：验证 Token
-    优先从 Header 获取，其次从 Query 参数获取
-    """
-    actual_token = x_game_token or token
-    if not actual_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="缺少访问令牌"
-        )
-    
-    if not traffic_controller.verify_session(actual_token):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="会话已过期或无效，请重新连接"
-        )
-    return actual_token
+
 
 
 # ==================== Narrate 接口 ====================
@@ -126,8 +109,7 @@ async def narrate_stream(
     request: NarrateRequest,
     token: str = Query(None, description="会话令牌")  # SSE 通常使用 Query 参数传递 Token
 ):
-    # 验证 Token
-    verify_token(token=token)
+
     """
     每日剧情生成 - 流式输出叙事内容
     
@@ -221,8 +203,7 @@ async def judge_stream(
     request: JudgeRequest,
     token: str = Query(None, description="会话令牌")
 ):
-    # 验证 Token
-    verify_token(token=token)
+
     """
     行动判定 - 流式输出判定叙事
     
@@ -329,8 +310,7 @@ async def ending(
     request: EndingRequest,
     x_game_token: str = Header(None, alias="X-Game-Token")
 ) -> EndingResponse:
-    # 验证 Token
-    verify_token(x_game_token=x_game_token)
+
     """
     结局结算接口
     
