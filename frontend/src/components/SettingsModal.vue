@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { LLMService } from '@/services/llm'
 
-defineProps<{
+const props = defineProps<{
   show: boolean
 }>()
 
@@ -11,11 +11,29 @@ const emit = defineEmits(['close'])
 
 const settingsStore = useSettingsStore()
 
-// 本地状态，用于编辑
-const form = ref({
-  apiKey: settingsStore.apiKey,
-  baseUrl: settingsStore.baseUrl,
-  model: settingsStore.model
+// 监听弹窗打开，重置状态
+import { watch } from 'vue'
+watch(() => props.show, (val) => {
+  if (val) {
+    testResult.value = null
+    isTesting.value = false
+  }
+})
+
+// 使用 Computed 属性实现自动保存
+const apiKeyModel = computed({
+  get: () => settingsStore.apiKey,
+  set: (val) => settingsStore.setApiKey(val)
+})
+
+const baseUrlModel = computed({
+  get: () => settingsStore.baseUrl,
+  set: (val) => settingsStore.setBaseUrl(val)
+})
+
+const modelModel = computed({
+  get: () => settingsStore.model,
+  set: (val) => settingsStore.setModel(val)
 })
 
 const isTesting = ref(false)
@@ -23,25 +41,15 @@ const testResult = ref<{ success: boolean; message: string } | null>(null)
 
 function handleClose() {
   emit('close')
-  // 重置测试结果
-  testResult.value = null
-  // 重置表单为 store 中的值 (放弃未保存更改)
-  form.value = {
-    apiKey: settingsStore.apiKey,
-    baseUrl: settingsStore.baseUrl,
-    model: settingsStore.model
-  }
 }
 
-async function handleSave() {
-  settingsStore.setApiKey(form.value.apiKey)
-  settingsStore.setBaseUrl(form.value.baseUrl)
-  settingsStore.setModel(form.value.model)
+function handleEnableCustomApi() {
+  settingsStore.setUseCustomApi(true)
   emit('close')
 }
 
 async function handleTestConnection() {
-  if (!form.value.apiKey) {
+  if (!settingsStore.apiKey) {
     testResult.value = { success: false, message: '请先输入 API Key' }
     return
   }
@@ -51,9 +59,9 @@ async function handleTestConnection() {
 
   try {
     const result = await LLMService.testConnection({
-      apiKey: form.value.apiKey,
-      baseUrl: form.value.baseUrl,
-      model: form.value.model
+      apiKey: settingsStore.apiKey,
+      baseUrl: settingsStore.baseUrl,
+      model: settingsStore.model
     })
     testResult.value = result
   } catch (e) {
@@ -86,8 +94,8 @@ async function handleTestConnection() {
         <!-- 内容区 -->
         <div class="p-6 space-y-6">
           <div class="text-gray-300 text-sm space-y-1">
-            <p>配置您的自有 LLM 服务。配置后，请求将<span class="text-red-400 font-bold">直接从浏览器发送</span>到 API，不经过我们的服务器。</p>
-            <p class="text-xs text-gray-500">您的 API Key 仅存储在本地浏览器中。</p>
+            <p>配置您的自有 LLM 服务。信息将<span class="text-green-400 font-bold">自动保存</span>到本地。</p>
+            <p class="text-xs text-gray-500">提示：开启后，请求将直接从浏览器发送到 API。</p>
           </div>
 
           <!-- 表单 -->
@@ -96,7 +104,7 @@ async function handleTestConnection() {
             <div class="space-y-1">
               <label class="block text-xs font-bold text-gray-400 uppercase">API Key</label>
               <input 
-                v-model="form.apiKey"
+                v-model="apiKeyModel"
                 type="password" 
                 placeholder="sk-..."
                 class="w-full bg-black/50 border border-gray-700 rounded px-3 py-2 text-white focus:border-red-500 focus:outline-none transition-colors"
@@ -108,7 +116,7 @@ async function handleTestConnection() {
             <div class="space-y-1">
               <label class="block text-xs font-bold text-gray-400 uppercase">Base URL</label>
               <input 
-                v-model="form.baseUrl"
+                v-model="baseUrlModel"
                 type="text" 
                 placeholder="https://api.openai.com/v1"
                 class="w-full bg-black/50 border border-gray-700 rounded px-3 py-2 text-white focus:border-red-500 focus:outline-none transition-colors"
@@ -117,10 +125,10 @@ async function handleTestConnection() {
             </div>
 
             <!-- Model -->
-            <div class="space-y-1">
+             <div class="space-y-1">
               <label class="block text-xs font-bold text-gray-400 uppercase">Model Name</label>
               <input 
-                v-model="form.model"
+                v-model="modelModel"
                 type="text" 
                 placeholder="gpt-3.5-turbo"
                 class="w-full bg-black/50 border border-gray-700 rounded px-3 py-2 text-white focus:border-red-500 focus:outline-none transition-colors"
@@ -148,20 +156,13 @@ async function handleTestConnection() {
               {{ isTesting ? '正在连接...' : '🔌 测试连接' }}
             </button>
             
-            <div class="flex gap-3">
-              <button 
-                @click="handleClose"
-                class="flex-1 py-2 border border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 rounded transition-all"
-              >
-                取消
-              </button>
-              <button 
-                @click="handleSave"
-                class="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded transition-all shadow-[0_0_15px_rgba(220,38,38,0.3)]"
-              >
-                保存设置
-              </button>
-            </div>
+            <button 
+              @click="handleEnableCustomApi"
+              class="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg transition-all shadow-[0_0_15px_rgba(220,38,38,0.3)] flex items-center justify-center gap-2"
+            >
+              <span>🚀</span>
+              保存并启用自定义 API
+            </button>
           </div>
         </div>
       </div>

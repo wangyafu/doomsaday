@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Stats, InventoryItem } from '@/types'
+import { useSettingsStore } from './settingsStore'
 
 // 冰河末世天赋定义
 export interface IceAgeTalent {
@@ -165,10 +166,26 @@ export const useIceAgeStore = defineStore('iceAge', () => {
         }
     }
 
-    // 增加游玩次数
+    // 增加游玩次数（仅在使用服务器API时统计）
     function incrementPlayCount() {
+        const settingsStore = useSettingsStore()
+        // 只有在非自定义模式（使用服务器API）时才统计
+        if (settingsStore.isCustomMode) {
+            return
+        }
         checkDailyReset()
         daily_play_count.value++
+    }
+
+    // 获取今日服务器API游玩次数
+    function getServerPlayCount(): number {
+        checkDailyReset()
+        return daily_play_count.value
+    }
+
+    // 检查是否需要显示打赏弹窗（服务器API游玩超过2次且非支持者）
+    function shouldShowPaymentModal(): boolean {
+        return !is_supporter.value && getServerPlayCount() >= 2
     }
 
     // 设置支持者身份
@@ -322,6 +339,8 @@ export const useIceAgeStore = defineStore('iceAge', () => {
         last_play_date,
         checkDailyReset,
         incrementPlayCount,
+        getServerPlayCount,
+        shouldShowPaymentModal,
         setSupporter,
         // 方法
         resetGame,

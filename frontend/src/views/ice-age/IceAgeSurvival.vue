@@ -2,7 +2,8 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useIceAgeStore, type DayLog, type PendingDayLog } from '@/stores/iceAgeStore'
-import { iceAgeNarrateStream, iceAgeJudgeStream, parseStateUpdate } from '@/api'
+import { GameEngine } from '@/services/gameEngine'
+import { parseStateUpdate } from '@/api'
 
 const router = useRouter()
 const iceAgeStore = useIceAgeStore()
@@ -40,7 +41,7 @@ async function loadMoreDays() {
     // 记录已解析的天数集合，避免重复
     const parsedDays = new Set<number>()
 
-    for await (const chunk of iceAgeNarrateStream({
+    for await (const chunk of GameEngine.iceAgeNarrateStream({
       start_day: startDay,
       days_to_generate: 5,
       stats: { hp: iceAgeStore.stats.hp, san: iceAgeStore.stats.san },
@@ -52,7 +53,7 @@ async function loadMoreDays() {
         player_action: h.player_action ?? undefined,
         judge_result: h.judge_result ?? undefined
       })),
-      shelter: iceAgeStore.shelter ? { id: iceAgeStore.shelter.id, name: iceAgeStore.shelter.name, warmth: iceAgeStore.shelter.warmth } : null,
+      shelter: iceAgeStore.shelter ? { id: iceAgeStore.shelter.id, name: iceAgeStore.shelter.name, warmth: 0, hiddenDescription: iceAgeStore.shelter.hiddenDescription } : null,
       talents: iceAgeStore.selectedTalents.map(t => ({ id: t.id, name: t.name, hiddenDescription: t.hiddenDescription }))
     })) {
       fullText += chunk
@@ -215,7 +216,7 @@ async function selectChoice(choice: string) {
   
   try {
     let fullText = ''
-    for await (const chunk of iceAgeJudgeStream({
+    for await (const chunk of GameEngine.iceAgeJudgeStream({
       day: pendingCrisis.value.day,
       temperature: pendingCrisis.value.temperature,
       event_context: pendingCrisis.value.narration,

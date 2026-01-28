@@ -4,12 +4,11 @@ import { useRouter } from "vue-router";
 import { useGameStore } from "@/stores/gameStore";
 import { useUiStore } from "@/stores/uiStore";
 import {
-  narrateStream,
-  judgeStream,
   parseNarrativeChoices,
   parseJudgeResult,
   filterHiddenContent,
 } from "@/api";
+import { GameEngine } from '@/services/gameEngine';
 import type { NarrateStateResponse, JudgeStateResponse, InventoryItem } from "@/types";
 import StatBar from "@/components/Game/StatBar.vue";
 import InventoryGrid from "@/components/Game/InventoryGrid.vue";
@@ -85,21 +84,14 @@ async function generateDailyNarration() {
     // 流式获取叙事内容
     let fullText = "";
     // 构建职业信息（转换为后端需要的格式）
-    const professionData = gameStore.profession ? {
-      id: gameStore.profession.id,
-      name: gameStore.profession.name,
-      description: gameStore.profession.description,
-      hidden_description: gameStore.profession.hiddenDescription
-    } : null;
-    
-    for await (const chunk of narrateStream({
+    for await (const chunk of GameEngine.zombieNarrateStream({
       day: gameStore.day,
       stats: gameStore.stats,
       inventory: gameStore.inventory,
       hidden_tags: gameStore.hiddenTags,
       history: gameStore.history,
       shelter: gameStore.shelter,
-      profession: professionData,
+      profession: gameStore.profession,
     })) {
       fullText += chunk;
       // 实时过滤 <hidden> 和 <state_update> 标签，避免展示给玩家
@@ -163,21 +155,14 @@ async function executeAction(action: string) {
     // 流式获取判定叙事（包含状态更新）
     let fullResult = "";
     // 构建职业信息（转换为后端需要的格式）
-    const professionData = gameStore.profession ? {
-      id: gameStore.profession.id,
-      name: gameStore.profession.name,
-      description: gameStore.profession.description,
-      hidden_description: gameStore.profession.hiddenDescription
-    } : null;
-    
-    for await (const chunk of judgeStream({
+    for await (const chunk of GameEngine.zombieJudgeStream({
       day: gameStore.day,
       event_context: eventContext.value,
       action_content: action,
       stats: gameStore.stats,
       inventory: gameStore.inventory,
       history: gameStore.history,
-      profession: professionData,
+      profession: gameStore.profession,
     })) {
       fullResult += chunk;
       // 实时过滤 <state_update> 标签，避免展示给玩家

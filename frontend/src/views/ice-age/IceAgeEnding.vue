@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useIceAgeStore } from '@/stores/iceAgeStore'
-import { iceAgeEnding } from '@/api'
+import { GameEngine } from '@/services/gameEngine'
 import wechatQrcode from '@/assets/微信收款码.png'
 import alipayQrcode from '@/assets/支付宝收款码.jpg'
 
@@ -32,7 +32,7 @@ async function generateEnding() {
   isLoading.value = true
   
   try {
-    const result = await iceAgeEnding({
+    const result = await GameEngine.iceAgeEnding({
       days_survived: iceAgeStore.day,
       is_victory: isVictory.value,
       final_stats: { hp: iceAgeStore.stats.hp, san: iceAgeStore.stats.san },

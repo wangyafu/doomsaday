@@ -2,7 +2,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore'
-import { ending, submitArchive } from '@/api'
+import { submitArchive } from '@/api'
+import { GameEngine } from '@/services/gameEngine'
 import type { EndingResponse } from '@/types'
 import wechatQrcode from '@/assets/微信收款码.png'
 import alipayQrcode from '@/assets/支付宝收款码.jpg'
@@ -35,21 +36,13 @@ async function generateEnding() {
   isLoading.value = true
   
   try {
-    // 构建职业信息（转换为后端需要的格式）
-    const professionData = gameStore.profession ? {
-      id: gameStore.profession.id,
-      name: gameStore.profession.name,
-      description: gameStore.profession.description,
-      hidden_description: gameStore.profession.hiddenDescription
-    } : null
-    
-    const response = await ending({
+    const response = await GameEngine.zombieEnding({
       days_survived: gameStore.day,
       high_light_moment: gameStore.highLightMoment,
       final_stats: gameStore.stats,
       final_inventory: gameStore.inventory,
       history: gameStore.history,
-      profession: professionData
+      profession: gameStore.profession
     })
     
     endingData.value = response

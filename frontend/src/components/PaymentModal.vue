@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useGameStore } from '@/stores/gameStore'
+import { useIceAgeStore } from '@/stores/iceAgeStore'
 import wechatQrcode from '@/assets/微信收款码.png'
 import alipayQrcode from '@/assets/支付宝收款码.jpg'
 
@@ -11,9 +12,15 @@ defineProps<{
 const emit = defineEmits(['close', 'confirm'])
 
 const gameStore = useGameStore()
+const iceAgeStore = useIceAgeStore()
 const isVerifying = ref(false)
 const showSuccess = ref(false)
 const paymentMethod = ref<'wechat' | 'alipay'>('wechat')
+
+// 计算今日服务器API游玩次数（取两个store中的最大值）
+const playCount = computed(() => {
+  return Math.max(gameStore.getServerPlayCount(), iceAgeStore.getServerPlayCount())
+})
 
 // 按钮 A: 我已支付
 async function handleConfirm() {
@@ -64,7 +71,7 @@ function handleCancel() {
         <!-- 内容区 -->
         <div class="p-4 space-y-3">
           <div class="text-gray-300 space-y-2 leading-relaxed">
-            <p class="font-bold text-yellow-500 text-sm">幸存者，你已连续挑战 2 次。</p>
+            <p class="font-bold text-yellow-500 text-sm">幸存者，你已连续挑战 {{ playCount }} 次。</p>
             <p class="text-xs">维持这个 AI 世界的运转并不免费。为了让 Deepseek 生成真实的求生反馈，每局需燃烧约 <span class="text-red-500 font-mono">0.156元</span> 的API服务成本。</p>
             <p class="text-xs italic border-l-2 border-gray-700 pl-3 py-1">
               我是独立开发者，正在自费维持这个世界。如果你觉得这个游戏有价值，请投出一张"信任票"。

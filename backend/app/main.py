@@ -29,7 +29,7 @@ app.include_router(ice_age.router)
 app.include_router(system.router)
 
 
-@app.get("/")
+@app.get("/api")
 async def root():
     """健康检查接口"""
     return {
@@ -39,7 +39,7 @@ async def root():
     }
 
 
-@app.get("/health")
+@app.get("/api/health")
 async def health_check():
     """健康检查"""
     return {"status": "healthy"}
