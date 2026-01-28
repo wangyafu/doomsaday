@@ -449,6 +449,28 @@ export async function getArchives(limit: number = 20): Promise<ArchiveRecord[]> 
 }
 
 
+
+/**
+ * 检查后端服务健康状态
+ * 返回: 'connected' | 'full' | 'disconnected'
+ */
+export async function checkHealth(): Promise<'connected' | 'full' | 'disconnected'> {
+  try {
+    const response = await fetch(`${API_BASE}/health`, { method: 'GET' });
+    if (response.ok) {
+      return 'connected';
+    }
+    if (response.status === 503) {
+      return 'full';
+    }
+    return 'disconnected';
+  } catch (e) {
+    console.warn("⚠️ [API] 后端服务未连接:", e);
+    return 'disconnected';
+  }
+}
+
+
 // ==================== 冰河末世 API ====================
 
 /**
