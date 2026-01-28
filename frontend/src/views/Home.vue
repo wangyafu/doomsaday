@@ -55,10 +55,10 @@ function handleStartIceAge() {
   router.push('/ice-age/start')
 }
 
-function executeStart() {
-  gameStore.resetGame()
-  router.push('/rebirth')
-}
+// function executeStart() {
+//   gameStore.resetGame()
+//   router.push('/rebirth')
+// }
 function onPaymentConfirm() {
   showPaymentModal.value = false
   gameStore.setSupporter(true) 
