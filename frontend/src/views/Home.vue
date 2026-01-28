@@ -62,9 +62,11 @@ function checkLimitAndStart(type: 'zombie' | 'ice_age') {
 function executeStart(type: 'zombie' | 'ice_age') {
   if (type === 'zombie') {
     gameStore.resetGame()
+    gameStore.incrementPlayCount()
     router.push('/rebirth')
   } else {
     iceAgeStore.resetGame()
+    iceAgeStore.incrementPlayCount()
     router.push('/ice-age/start')
   }
 }
