@@ -23,6 +23,8 @@ const showSettingsModal = ref(false)
 
 const isBackendConnected = ref<'connected' | 'full' | 'disconnected'>('connected')
 
+const pendingGameType = ref<'zombie' | 'ice_age' | null>(null)
+
 // 在组件挂载时检查连接
 onMounted(async () => {
   isBackendConnected.value = await checkHealth()
@@ -32,41 +34,68 @@ onMounted(async () => {
   }
 })
 
-function handleStartGame() {
-  // 如果后端未连接且未设置自定义API，提示用户
-  if (isBackendConnected.value !== 'connected' && !settingsStore.isCustomMode) {
-    showSettingsModal.value = true
-    return
-  }
-  
-  // 移除强制付费检查，直接进入
-  gameStore.resetGame()
-  router.push('/rebirth')
-}
-
-function handleStartIceAge() {
+function checkLimitAndStart(type: 'zombie' | 'ice_age') {
    // 如果后端未连接且未设置自定义API，提示用户
   if (isBackendConnected.value !== 'connected' && !settingsStore.isCustomMode) {
     showSettingsModal.value = true
     return
   }
 
-  iceAgeStore.resetGame()
-  router.push('/ice-age/start')
+  // 检查是否需要弹窗（仅在服务器模式下，且非支持者且游玩次数 >= 2）
+  if (!settingsStore.isCustomMode) {
+    // 两个模式共享由于使用了相同的 playCount 逻辑（取最大值），这里简单判断其中一个即可
+    const shouldShow = type === 'zombie' 
+      ? gameStore.shouldShowPaymentModal() 
+      : iceAgeStore.shouldShowPaymentModal()
+
+    if (shouldShow) {
+      pendingGameType.value = type
+      showPaymentModal.value = true
+      return
+    }
+  }
+  
+  // 直接开始
+  executeStart(type)
 }
 
-// function executeStart() {
-//   gameStore.resetGame()
-//   router.push('/rebirth')
-// }
+function executeStart(type: 'zombie' | 'ice_age') {
+  if (type === 'zombie') {
+    gameStore.resetGame()
+    router.push('/rebirth')
+  } else {
+    iceAgeStore.resetGame()
+    router.push('/ice-age/start')
+  }
+}
+
+function handleStartGame() {
+  checkLimitAndStart('zombie')
+}
+
+function handleStartIceAge() {
+  checkLimitAndStart('ice_age')
+}
+
 function onPaymentConfirm() {
   showPaymentModal.value = false
   gameStore.setSupporter(true) 
   iceAgeStore.setSupporter(true)
+  
+  // 支付成功后自动进入游戏
+  if (pendingGameType.value) {
+    executeStart(pendingGameType.value)
+    pendingGameType.value = null
+  }
 }
 
 function onPaymentClose() {
   showPaymentModal.value = false
+  // 关闭弹窗后（"下次一定"），也允许进入游戏
+  if (pendingGameType.value) {
+     executeStart(pendingGameType.value)
+     pendingGameType.value = null
+  }
 }
 
 function continueGame() {
