@@ -1,10 +1,12 @@
 """
 末世模拟器后端 - FastAPI 主应用入口
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import game, archive, ice_age, system
+from app.core.traffic_control import traffic_controller
+from app.config import get_settings
 
 # 创建应用实例
 app = FastAPI(
@@ -41,7 +43,17 @@ async def root():
 
 @app.get("/api/health")
 async def health_check():
-    """健康检查"""
+    """
+    健康检查
+    如果服务器已满，返回 503 状态码
+    """
+    settings = get_settings()
+    if traffic_controller.public_count >= settings.MAX_PUBLIC_USERS:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Server Full"
+        )
+            
     return {"status": "healthy"}
 
 
