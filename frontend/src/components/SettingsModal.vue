@@ -67,15 +67,15 @@ async function handleTestConnection() {
 <template>
   <transition name="modal-fade">
     <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
-      <div class="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-gray-900 border-2 border-blue-600 rounded-lg shadow-[0_0_30px_rgba(37,99,235,0.3)]">
+      <div class="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-gray-900 border-2 border-red-600 rounded-lg shadow-[0_0_30px_rgba(220,38,38,0.3)]">
         <!-- 头部 -->
-        <div class="bg-blue-600 p-3 flex items-center gap-2 sticky top-0 z-10">
+        <div class="bg-red-600 p-3 flex items-center gap-2 sticky top-0 z-10">
           <span class="text-xl">⚙️</span>
           <h2 class="text-white font-bold text-lg tracking-wider flex-1">自定义 API 设置</h2>
           <!-- 关闭按钮 -->
           <button 
             @click="handleClose"
-            class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-blue-500 rounded-full transition-all"
+            class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-red-500 rounded-full transition-all"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -86,7 +86,7 @@ async function handleTestConnection() {
         <!-- 内容区 -->
         <div class="p-6 space-y-6">
           <div class="text-gray-300 text-sm space-y-1">
-            <p>配置您的自有 LLM 服务。配置后，请求将<span class="text-blue-400 font-bold">直接从浏览器发送</span>到 API，不经过我们的服务器。</p>
+            <p>配置您的自有 LLM 服务。配置后，请求将<span class="text-red-400 font-bold">直接从浏览器发送</span>到 API，不经过我们的服务器。</p>
             <p class="text-xs text-gray-500">您的 API Key 仅存储在本地浏览器中。</p>
           </div>
 
@@ -99,7 +99,7 @@ async function handleTestConnection() {
                 v-model="form.apiKey"
                 type="password" 
                 placeholder="sk-..."
-                class="w-full bg-black/50 border border-gray-700 rounded px-3 py-2 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                class="w-full bg-black/50 border border-gray-700 rounded px-3 py-2 text-white focus:border-red-500 focus:outline-none transition-colors"
                 autocomplete="off"
               />
             </div>
@@ -111,7 +111,7 @@ async function handleTestConnection() {
                 v-model="form.baseUrl"
                 type="text" 
                 placeholder="https://api.openai.com/v1"
-                class="w-full bg-black/50 border border-gray-700 rounded px-3 py-2 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                class="w-full bg-black/50 border border-gray-700 rounded px-3 py-2 text-white focus:border-red-500 focus:outline-none transition-colors"
               />
               <p class="text-xs text-gray-500">提示: Deepseek 请填写 https://api.deepseek.com</p>
             </div>
@@ -123,7 +123,7 @@ async function handleTestConnection() {
                 v-model="form.model"
                 type="text" 
                 placeholder="gpt-3.5-turbo"
-                class="w-full bg-black/50 border border-gray-700 rounded px-3 py-2 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                class="w-full bg-black/50 border border-gray-700 rounded px-3 py-2 text-white focus:border-red-500 focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -157,7 +157,7 @@ async function handleTestConnection() {
               </button>
               <button 
                 @click="handleSave"
-                class="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+                class="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded transition-all shadow-[0_0_15px_rgba(220,38,38,0.3)]"
               >
                 保存设置
               </button>
