@@ -7,6 +7,7 @@ import { useSettingsStore } from '@/stores/settingsStore'
 import { checkHealth, checkAccess } from '@/api'
 import PaymentModal from '@/components/PaymentModal.vue'
 import SettingsModal from '@/components/SettingsModal.vue'
+import ArchiveGallery from '@/components/ArchiveGallery.vue'
 
 import wechatQrcode from '@/assets/微信收款码.png'
 import alipayQrcode from '@/assets/支付宝收款码.jpg'
@@ -279,7 +280,10 @@ function continueGame() {
     <!-- 底部提示 -->
     <p class="mt-8 text-gray-600 text-sm">点击选择末日场景开始游戏</p>
     
-
+    <!-- 末世档案馆 -->
+    <div class="mt-12 w-full max-w-4xl px-4">
+      <ArchiveGallery />
+    </div>
     
     <!-- 支持作者 -->
     <div class="mt-12 text-center">

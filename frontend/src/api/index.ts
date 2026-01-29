@@ -427,8 +427,14 @@ export async function submitArchive(params: {
   cause_of_death: string | null;
   comment: string;
   radar_chart: number[];
+  radar_labels: string[];
   profession_name: string | null;
   profession_icon: string | null;
+  game_type: 'zombie' | 'ice_age';
+  extra_info?: {
+    highlight_moment?: string;
+    talents?: { id: string; name: string; icon: string }[];
+  };
 }): Promise<ArchiveRecord> {
   logRequest("POST /archive/submit", params);
 
@@ -448,8 +454,31 @@ export async function submitArchive(params: {
 /**
  * 获取末世档案列表
  */
-export async function getArchives(limit: number = 20): Promise<ArchiveRecord[]> {
-  const response = await safeFetch(`${API_BASE}/archive/list?limit=${limit}`);
+export async function getArchives(
+  limit: number = 12,
+  offset: number = 0,
+  game_type: 'all' | 'zombie' | 'ice_age' = 'all'
+): Promise<ArchiveRecord[]> {
+  const response = await safeFetch(
+    `${API_BASE}/archive/list?limit=${limit}&offset=${offset}&game_type=${game_type}`
+  );
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * 为档案点赞
+ */
+export async function likeArchive(archive_id: string): Promise<{ success: boolean; likes: number }> {
+  const response = await safeFetch(`${API_BASE}/archive/like`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ archive_id }),
+  });
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
