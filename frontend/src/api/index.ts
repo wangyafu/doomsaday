@@ -171,12 +171,13 @@ export async function* narrateStream(params: {
 }): AsyncGenerator<string, void, unknown> {
   logRequest("POST /game/narrate/stream", params);
 
-  // 确保有 Token
+  // Token 可选（从 Home.vue 获取，但 API 层不强制要求）
   const token = getSessionToken();
-  if (!token) throw new Error("NO_TOKEN");
+  const url = token
+    ? `${API_BASE}/game/narrate/stream?token=${encodeURIComponent(token)}`
+    : `${API_BASE}/game/narrate/stream`;
 
-  // 将 Token 放在 Query 参数中 (SSE 标准兼容性更好)
-  const response = await safeFetch(`${API_BASE}/game/narrate/stream?token=${encodeURIComponent(token)}`, {
+  const response = await safeFetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -186,6 +187,7 @@ export async function* narrateStream(params: {
 
   if (!response.ok) {
     if (response.status === 401) throw new Error("TOKEN_EXPIRED");
+    if (response.status === 503) throw new Error("SERVER_FULL");
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
@@ -299,10 +301,13 @@ export async function* judgeStream(params: {
 }): AsyncGenerator<string, void, unknown> {
   logRequest("POST /game/judge/stream", params);
 
+  // Token 可选（从 Home.vue 获取，但 API 层不强制要求）
   const token = getSessionToken();
-  if (!token) throw new Error("NO_TOKEN");
+  const url = token
+    ? `${API_BASE}/game/judge/stream?token=${encodeURIComponent(token)}`
+    : `${API_BASE}/game/judge/stream`;
 
-  const response = await safeFetch(`${API_BASE}/game/judge/stream?token=${encodeURIComponent(token)}`, {
+  const response = await safeFetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
@@ -310,6 +315,7 @@ export async function* judgeStream(params: {
 
   if (!response.ok) {
     if (response.status === 401) throw new Error("TOKEN_EXPIRED");
+    if (response.status === 503) throw new Error("SERVER_FULL");
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
@@ -384,20 +390,24 @@ export async function ending(params: {
 }): Promise<EndingResponse> {
   logRequest("POST /game/ending", params);
 
+  // Token 可选（从 Home.vue 获取，但 API 层不强制要求）
   const token = getSessionToken();
-  if (!token) throw new Error("NO_TOKEN");
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json"
+  };
+  if (token) {
+    headers["X-Game-Token"] = token;
+  }
 
   const response = await safeFetch(`${API_BASE}/game/ending`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Game-Token": token
-    },
+    headers,
     body: JSON.stringify(params),
   });
 
   if (!response.ok) {
     if (response.status === 401) throw new Error("TOKEN_EXPIRED");
+    if (response.status === 503) throw new Error("SERVER_FULL");
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 

@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore'
 import { useIceAgeStore } from '@/stores/iceAgeStore'
 import { useSettingsStore } from '@/stores/settingsStore'
-import { checkHealth } from '@/api'
+import { checkHealth, checkAccess } from '@/api'
 import PaymentModal from '@/components/PaymentModal.vue'
 import SettingsModal from '@/components/SettingsModal.vue'
 
@@ -34,16 +34,30 @@ onMounted(async () => {
   }
 })
 
-function checkLimitAndStart(type: 'zombie' | 'ice_age') {
+async function checkLimitAndStart(type: 'zombie' | 'ice_age') {
    // 如果后端未连接且未设置自定义API，提示用户
   if (isBackendConnected.value !== 'connected' && !settingsStore.isCustomMode) {
     showSettingsModal.value = true
     return
   }
 
-  // 检查是否需要弹窗（仅在服务器模式下，且非支持者且游玩次数 >= 2）
+  // 服务器模式下先获取 Token
   if (!settingsStore.isCustomMode) {
-    // 两个模式共享由于使用了相同的 playCount 逻辑（取最大值），这里简单判断其中一个即可
+    try {
+      await checkAccess()
+      isBackendConnected.value = 'connected'
+    } catch (e: any) {
+      if (e.message === 'SERVER_FULL') {
+        isBackendConnected.value = 'full'
+      } else {
+        isBackendConnected.value = 'disconnected'
+      }
+      // 显示设置弹窗，引导用户切换到自定义模式
+      showSettingsModal.value = true
+      return
+    }
+
+    // 检查是否需要弹窗（仅在服务器模式下，且非支持者且游玩次数 >= 2）
     const shouldShow = type === 'zombie' 
       ? gameStore.shouldShowPaymentModal() 
       : iceAgeStore.shouldShowPaymentModal()
@@ -60,6 +74,15 @@ function checkLimitAndStart(type: 'zombie' | 'ice_age') {
 }
 
 function executeStart(type: 'zombie' | 'ice_age') {
+  // 只有在服务器模式下才增加游玩次数统计
+  if (!settingsStore.isCustomMode) {
+    if (type === 'zombie') {
+      gameStore.incrementPlayCount()
+    } else {
+      iceAgeStore.incrementPlayCount()
+    }
+  }
+  
   if (type === 'zombie') {
     gameStore.resetGame()
     router.push('/rebirth')
