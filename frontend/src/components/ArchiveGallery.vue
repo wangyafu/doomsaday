@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { getArchives, likeArchive } from '@/api'
 import type { ArchiveRecord, GameType } from '@/types'
 import ArchiveCard from './ArchiveCard.vue'
@@ -9,9 +9,19 @@ type FilterType = 'all' | GameType
 const archives = ref<ArchiveRecord[]>([])
 const currentFilter = ref<FilterType>('all')
 const isLoading = ref(false)
+const isLoadingMore = ref(false)
 const likedArchives = ref<Set<string>>(new Set())
 
-const LIMIT = 100
+// 分页相关
+const INITIAL_LIMIT = 12  // 初始显示数量
+const PAGE_SIZE = 9       // 每次加载更多的数量
+const displayCount = ref(INITIAL_LIMIT)
+
+// 计算是否还有更多档案可显示
+const hasMore = computed(() => displayCount.value < archives.value.length)
+
+// 当前显示的档案
+const displayedArchives = computed(() => archives.value.slice(0, displayCount.value))
 
 // 从 localStorage 读取已点赞的档案
 const loadLikedArchives = () => {
@@ -42,8 +52,11 @@ const fetchArchives = async () => {
   isLoading.value = true
   
   try {
-    const data = await getArchives(LIMIT, 0, currentFilter.value)
+    // 获取更多数据以支持"加载更多"功能
+    const data = await getArchives(100, 0, currentFilter.value)
     archives.value = data
+    // 重置显示数量
+    displayCount.value = INITIAL_LIMIT
   } catch (error) {
     console.error('获取档案失败:', error)
   } finally {
@@ -77,7 +90,18 @@ const handleLike = async (id: string) => {
   }
 }
 
-
+// 加载更多
+const loadMore = () => {
+  if (isLoadingMore.value || !hasMore.value) return
+  
+  isLoadingMore.value = true
+  
+  // 模拟加载延迟,提供更好的用户体验
+  setTimeout(() => {
+    displayCount.value = Math.min(displayCount.value + PAGE_SIZE, archives.value.length)
+    isLoadingMore.value = false
+  }, 300)
+}
 
 onMounted(() => {
   loadLikedArchives()
@@ -126,7 +150,7 @@ const filterOptions: { value: FilterType; label: string }[] = [
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <ArchiveCard
-          v-for="archive in archives"
+          v-for="archive in displayedArchives"
           :key="archive.id"
           :record="archive"
           :is-liked="isLiked(archive.id)"
@@ -140,6 +164,25 @@ const filterOptions: { value: FilterType; label: string }[] = [
         <p class="text-gray-500 text-sm mt-2">加载中...</p>
       </div>
 
+      <!-- 加载更多按钮 -->
+      <div v-if="hasMore && !isLoading" class="text-center py-6">
+        <button
+          @click="loadMore"
+          :disabled="isLoadingMore"
+          class="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 
+                 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed
+                 border border-gray-700 hover:border-gray-600"
+        >
+          <span v-if="!isLoadingMore">📚 加载更多</span>
+          <span v-else class="flex items-center gap-2">
+            <span class="inline-block animate-spin">⏳</span>
+            <span>加载中...</span>
+          </span>
+        </button>
+        <p class="text-gray-600 text-xs mt-2">
+          已显示 {{ displayedArchives.length }} / {{ archives.length }} 条
+        </p>
+      </div>
 
     </div>
   </div>

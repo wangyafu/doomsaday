@@ -282,6 +282,9 @@ onMounted(() => {
         >
           📸 生成分享图片
         </button>
+        <p class="text-xs text-center text-red-400/80 mt-1 mb-4">
+          ✨ 快到小红书分享你的求生经历！
+        </p>
         
         <button 
           class="w-full py-4 bg-purple-600 rounded-lg font-bold

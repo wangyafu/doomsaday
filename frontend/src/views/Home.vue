@@ -282,11 +282,6 @@ function continueGame() {
     <!-- 底部提示 -->
     <p class="mt-8 text-gray-600 text-sm">点击选择末日场景开始游戏</p>
     
-    <!-- 末世档案馆 -->
-    <div class="mt-12 w-full max-w-7xl px-4">
-      <ArchiveGallery />
-    </div>
-    
     <!-- 支持作者 -->
     <div class="mt-12 text-center">
       <button 
@@ -365,6 +360,11 @@ function continueGame() {
           <span class="font-bold text-lg">精神物种</span>
         </a>
       </div>
+    </div>
+    
+    <!-- 末世档案馆 -->
+    <div class="mt-12 w-full max-w-7xl px-4">
+      <ArchiveGallery />
     </div>
 
     <!-- 支付弹窗 -->
