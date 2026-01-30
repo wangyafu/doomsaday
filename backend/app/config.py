@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     environment: str = "development"  # development 或 production
     
     # 流量控制配置
-    MAX_PUBLIC_USERS: int = 1
+    MAX_PUBLIC_USERS: int = 5
     SESSION_TIMEOUT_SECONDS: int = 600
     
     class Config:
