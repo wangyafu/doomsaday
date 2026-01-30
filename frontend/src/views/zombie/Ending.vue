@@ -111,8 +111,13 @@ async function submitToArchive() {
       cause_of_death: endingData.value.cause_of_death,
       comment: endingData.value.comment,
       radar_chart: endingData.value.radar_chart,
+      radar_labels: radarLabels,
       profession_name: gameStore.profession?.name || null,
-      profession_icon: gameStore.profession?.icon || null
+      profession_icon: gameStore.profession?.icon || null,
+      game_type: 'zombie',
+      extra_info: {
+        highlight_moment: gameStore.highLightMoment || undefined
+      }
     })
     submitSuccess.value = true
   } catch (error) {
@@ -210,12 +215,12 @@ onMounted(() => {
         </div>
         
         <!-- 最终状态 -->
-        <div class="grid grid-cols-3 gap-2 text-center text-sm">
+        <div class="grid grid-cols-2 gap-2 text-center text-sm">
           <div class="bg-gray-800 rounded p-2">
             <p class="text-gray-500">❤️ HP</p>
             <p class="font-bold">{{ gameStore.stats.hp }}</p>
           </div>
-         
+          
           <div class="bg-gray-800 rounded p-2">
             <p class="text-gray-500">🧠 理智</p>
             <p class="font-bold">{{ gameStore.stats.san }}</p>

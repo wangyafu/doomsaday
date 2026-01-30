@@ -6,8 +6,8 @@ export type ServerStatus = 'connected' | 'full' | 'disconnected' | 'checking'
 export const useSettingsStore = defineStore('settings', {
     state: () => ({
         apiKey: '',
-        baseUrl: 'https://api.openai.com/v1',
-        model: 'gpt-3.5-turbo',
+        baseUrl: 'https://api.deepseek.com',
+        model: 'deepseek-chat',
         useCustomApi: false,
         serverStatus: 'disconnected' as ServerStatus,
         serverStatusMessage: ''

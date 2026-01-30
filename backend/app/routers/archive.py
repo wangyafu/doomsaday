@@ -1,6 +1,7 @@
 """
 末世生存档案 API - 存储和展示玩家结局
 """
+
 import json
 import uuid
 from datetime import datetime
@@ -18,19 +19,28 @@ ARCHIVE_FILE = Path(__file__).parent.parent.parent / "data" / "archives.json"
 
 class ArchiveSubmit(BaseModel):
     """提交档案请求"""
+
     nickname: str = Field(..., min_length=1, max_length=20, description="玩家昵称")
     epithet: str = Field(..., description="四字人设词")
     days_survived: int = Field(..., description="存活天数")
     is_victory: bool = Field(..., description="是否通关")
     cause_of_death: Optional[str] = Field(default=None, description="死因")
     comment: str = Field(..., description="毒舌评语")
-    radar_chart: list[int] = Field(..., min_length=5, max_length=5, description="五维雷达图")
+    radar_chart: list[int] = Field(
+        ..., min_length=5, max_length=5, description="五维雷达图"
+    )
+    radar_labels: list[str] = Field(default=None, description="雷达图标签")
     profession_name: Optional[str] = Field(default=None, description="职业名称")
     profession_icon: Optional[str] = Field(default=None, description="职业图标")
+    game_type: str = Field(default="zombie", description="游戏类型: zombie/ice_age")
+    extra_info: Optional[dict] = Field(
+        default=None, description="额外信息(高光时刻/天赋等)"
+    )
 
 
 class ArchiveRecord(BaseModel):
     """档案记录"""
+
     id: str
     nickname: str
     epithet: str
@@ -39,8 +49,12 @@ class ArchiveRecord(BaseModel):
     cause_of_death: Optional[str]
     comment: str
     radar_chart: list[int]
+    radar_labels: Optional[list[str]]
     profession_name: Optional[str]
     profession_icon: Optional[str]
+    game_type: str
+    extra_info: Optional[dict]
+    likes: int
     created_at: str
 
 
@@ -66,7 +80,15 @@ def _save_archives(archives: list[dict]) -> None:
 async def submit_archive(data: ArchiveSubmit) -> ArchiveRecord:
     """提交结局到档案"""
     archives = _load_archives()
-    
+
+    # 设置默认雷达图标签
+    radar_labels = data.radar_labels
+    if not radar_labels or len(radar_labels) != 5:
+        if data.game_type == "ice_age":
+            radar_labels = ["生存力", "抗寒力", "智慧", "运气", "心理素质"]
+        else:
+            radar_labels = ["战斗力", "生存力", "智慧", "运气", "人性"]
+
     # 创建新档案记录
     record = ArchiveRecord(
         id=str(uuid.uuid4())[:8],
@@ -77,24 +99,58 @@ async def submit_archive(data: ArchiveSubmit) -> ArchiveRecord:
         cause_of_death=data.cause_of_death,
         comment=data.comment,
         radar_chart=data.radar_chart,
+        radar_labels=radar_labels,
         profession_name=data.profession_name,
         profession_icon=data.profession_icon,
-        created_at=datetime.now().isoformat()
+        game_type=data.game_type,
+        extra_info=data.extra_info,
+        likes=0,
+        created_at=datetime.now().isoformat(),
     )
-    
+
     # 添加到列表开头（最新的在前）
     archives.insert(0, record.model_dump())
-    
+
     # 限制最多保存 100 条记录
     if len(archives) > 100:
         archives = archives[:100]
-    
+
     _save_archives(archives)
     return record
 
 
 @router.get("/list", response_model=list[ArchiveRecord])
-async def list_archives(limit: int = 20) -> list[ArchiveRecord]:
-    """获取档案列表"""
+async def list_archives(
+    limit: int = 12, offset: int = 0, game_type: Optional[str] = None
+) -> list[ArchiveRecord]:
+    """获取档案列表
+
+    Args:
+        limit: 返回数量限制（默认12）
+        offset: 偏移量（用于分页）
+        game_type: 筛选游戏类型（zombie/ice_age/all）
+    """
     archives = _load_archives()
-    return [ArchiveRecord(**a) for a in archives[:limit]]
+
+    # 筛选游戏类型
+    if game_type and game_type != "all":
+        archives = [a for a in archives if a.get("game_type", "zombie") == game_type]
+
+    # 分页
+    archives = archives[offset : offset + limit]
+
+    return [ArchiveRecord(**a) for a in archives]
+
+
+@router.post("/like")
+async def like_archive(archive_id: str) -> dict:
+    """为档案点赞"""
+    archives = _load_archives()
+
+    for archive in archives:
+        if archive.get("id") == archive_id:
+            archive["likes"] = archive.get("likes", 0) + 1
+            _save_archives(archives)
+            return {"success": True, "likes": archive["likes"]}
+
+    raise HTTPException(status_code=404, detail="档案不存在")

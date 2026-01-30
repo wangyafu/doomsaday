@@ -102,6 +102,9 @@ export interface EndingResponse {
   radar_chart: number[]
 }
 
+// 游戏类型
+export type GameType = 'zombie' | 'ice_age'
+
 // 末世生存档案
 export interface ArchiveRecord {
   id: string
@@ -112,7 +115,14 @@ export interface ArchiveRecord {
   cause_of_death: string | null
   comment: string
   radar_chart: number[]
+  radar_labels: string[]
   profession_name: string | null
   profession_icon: string | null
+  game_type: GameType
+  extra_info: {
+    highlight_moment?: string
+    talents?: { id: string; name: string; icon: string }[]
+  } | null
+  likes: number
   created_at: string
 }

@@ -118,7 +118,7 @@ async function handleTestConnection() {
               <input 
                 v-model="baseUrlModel"
                 type="text" 
-                placeholder="https://api.openai.com/v1"
+                placeholder="https://api.deepseek.com"
                 class="w-full bg-black/50 border border-gray-700 rounded px-3 py-2 text-white focus:border-red-500 focus:outline-none transition-colors"
               />
               <p class="text-xs text-gray-500">提示: Deepseek 请填写 https://api.deepseek.com</p>
@@ -130,7 +130,7 @@ async function handleTestConnection() {
               <input 
                 v-model="modelModel"
                 type="text" 
-                placeholder="gpt-3.5-turbo"
+                placeholder="deepseek-chat"
                 class="w-full bg-black/50 border border-gray-700 rounded px-3 py-2 text-white focus:border-red-500 focus:outline-none transition-colors"
               />
             </div>
