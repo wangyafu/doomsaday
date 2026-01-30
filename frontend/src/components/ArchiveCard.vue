@@ -35,9 +35,7 @@ const radarLabels = computed(() => {
     : ['生存力', '抗寒力', '智慧', '运气', '心理素质']
 })
 
-const subtitle = computed(() => 
-  isZombie.value ? '末世模拟器 · 丧尸围城篇' : '末世模拟器 · 冰河末世篇'
-)
+
 
 const victoryText = computed(() =>
   isZombie.value ? '🎉 通关' : '🏆 通关'
@@ -61,11 +59,14 @@ const handleLike = () => {
 <template>
   <div class="archive-card bg-gray-900 rounded-lg p-4 sm:p-5 border border-gray-800 hover:border-gray-700 transition-all">
     <!-- 标题 -->
+    <!-- 标题 -->
     <div class="text-center mb-4">
-      <p class="text-gray-500 text-xs mb-1">{{ subtitle }}</p>
-      <h3 class="text-xl font-bold" :class="themeColor.text">
-        {{ record.is_victory ? victoryText : '💀 游戏结束' }}
+      <h3 class="text-xl font-bold text-white mb-1">
+        {{ record.nickname }}
       </h3>
+      <p class="text-sm font-bold opacity-90" :class="themeColor.text">
+        {{ record.is_victory ? victoryText : '💀 游戏结束' }}
+      </p>
     </div>
 
     <!-- 人设词 -->
@@ -157,8 +158,8 @@ const handleLike = () => {
     <!-- 底部信息栏 -->
     <div class="flex items-center justify-between pt-3 border-t border-gray-800">
       <!-- 时间和昵称 -->
-      <div class="flex flex-col">
-        <span class="text-xs text-gray-400">{{ record.nickname }}</span>
+      <!-- 时间 -->
+      <div class="flex flex-col justify-center">
         <span class="text-[10px] text-gray-600">{{ formatDate(record.created_at) }}</span>
       </div>
       

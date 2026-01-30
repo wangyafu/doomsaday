@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { getArchives, likeArchive } from '@/api'
 import type { ArchiveRecord, GameType } from '@/types'
 import ArchiveCard from './ArchiveCard.vue'
@@ -9,11 +9,9 @@ type FilterType = 'all' | GameType
 const archives = ref<ArchiveRecord[]>([])
 const currentFilter = ref<FilterType>('all')
 const isLoading = ref(false)
-const hasMore = ref(true)
-const offset = ref(0)
 const likedArchives = ref<Set<string>>(new Set())
 
-const LIMIT = 12
+const LIMIT = 100
 
 // 从 localStorage 读取已点赞的档案
 const loadLikedArchives = () => {
@@ -38,31 +36,14 @@ const saveLikedArchives = () => {
 
 const isLiked = (id: string) => likedArchives.value.has(id)
 
-const fetchArchives = async (reset = false) => {
+const fetchArchives = async () => {
   if (isLoading.value) return
   
   isLoading.value = true
   
   try {
-    if (reset) {
-      offset.value = 0
-      archives.value = []
-      hasMore.value = true
-    }
-    
-    const data = await getArchives(LIMIT, offset.value, currentFilter.value)
-    
-    if (data.length < LIMIT) {
-      hasMore.value = false
-    }
-    
-    if (reset) {
-      archives.value = data
-    } else {
-      archives.value.push(...data)
-    }
-    
-    offset.value += data.length
+    const data = await getArchives(LIMIT, 0, currentFilter.value)
+    archives.value = data
   } catch (error) {
     console.error('获取档案失败:', error)
   } finally {
@@ -73,7 +54,7 @@ const fetchArchives = async (reset = false) => {
 const handleFilterChange = (filter: FilterType) => {
   if (currentFilter.value === filter) return
   currentFilter.value = filter
-  fetchArchives(true)
+  fetchArchives()
 }
 
 const handleLike = async (id: string) => {
@@ -96,18 +77,11 @@ const handleLike = async (id: string) => {
   }
 }
 
-const handleScroll = (e: Event) => {
-  const target = e.target as HTMLElement
-  const scrollBottom = target.scrollHeight - target.scrollTop - target.clientHeight
-  
-  if (scrollBottom < 100 && !isLoading.value && hasMore.value) {
-    fetchArchives()
-  }
-}
+
 
 onMounted(() => {
   loadLikedArchives()
-  fetchArchives(true)
+  fetchArchives()
 })
 
 const filterOptions: { value: FilterType; label: string }[] = [
@@ -142,8 +116,7 @@ const filterOptions: { value: FilterType; label: string }[] = [
 
     <!-- 档案列表 -->
     <div 
-      class="archive-grid max-h-[600px] overflow-y-auto px-2 -mx-2"
-      @scroll="handleScroll"
+      class="archive-grid px-2 -mx-2"
     >
       <div v-if="archives.length === 0 && !isLoading" class="text-center py-12">
         <p class="text-4xl mb-4">📭</p>
@@ -151,7 +124,7 @@ const filterOptions: { value: FilterType; label: string }[] = [
         <p class="text-gray-600 text-sm mt-2">成为第一个分享结局的幸存者吧！</p>
       </div>
 
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <ArchiveCard
           v-for="archive in archives"
           :key="archive.id"
@@ -167,10 +140,7 @@ const filterOptions: { value: FilterType; label: string }[] = [
         <p class="text-gray-500 text-sm mt-2">加载中...</p>
       </div>
 
-      <!-- 没有更多 -->
-      <div v-if="!hasMore && archives.length > 0" class="text-center py-6">
-        <p class="text-gray-600 text-sm">— 已经到底了 —</p>
-      </div>
+
     </div>
   </div>
 </template>
@@ -178,36 +148,5 @@ const filterOptions: { value: FilterType; label: string }[] = [
 <style scoped>
 .archive-gallery {
   width: 100%;
-}
-
-.archive-grid {
-  scrollbar-width: thin;
-  scrollbar-color: #374151 #111827;
-}
-
-.archive-grid::-webkit-scrollbar {
-  width: 6px;
-}
-
-.archive-grid::-webkit-scrollbar-track {
-  background: #111827;
-  border-radius: 3px;
-}
-
-.archive-grid::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 3px;
-}
-
-.archive-grid::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
-}
-
-/* 隐藏滚动条但在移动端保留滚动功能 */
-@media (max-width: 768px) {
-  .archive-grid {
-    max-height: none;
-    overflow-y: visible;
-  }
 }
 </style>

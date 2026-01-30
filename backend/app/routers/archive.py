@@ -46,16 +46,21 @@ class ArchiveRecord(BaseModel):
     epithet: str
     days_survived: int
     is_victory: bool
-    cause_of_death: Optional[str]
+    cause_of_death: Optional[str] = None
     comment: str
     radar_chart: list[int]
-    radar_labels: Optional[list[str]]
-    profession_name: Optional[str]
-    profession_icon: Optional[str]
-    game_type: str
-    extra_info: Optional[dict]
-    likes: int
+    radar_labels: Optional[list[str]] = None
+    profession_name: Optional[str] = None
+    profession_icon: Optional[str] = None
+    game_type: str = "zombie"
+    extra_info: Optional[dict] = None
+    likes: int = 0
     created_at: str
+
+
+class LikeRequest(BaseModel):
+    """点赞请求"""
+    archive_id: str
 
 
 def _load_archives() -> list[dict]:
@@ -143,12 +148,12 @@ async def list_archives(
 
 
 @router.post("/like")
-async def like_archive(archive_id: str) -> dict:
+async def like_archive(request: LikeRequest) -> dict:
     """为档案点赞"""
     archives = _load_archives()
 
     for archive in archives:
-        if archive.get("id") == archive_id:
+        if archive.get("id") == request.archive_id:
             archive["likes"] = archive.get("likes", 0) + 1
             _save_archives(archives)
             return {"success": True, "likes": archive["likes"]}

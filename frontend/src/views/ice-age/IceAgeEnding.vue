@@ -2,7 +2,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useIceAgeStore } from '@/stores/iceAgeStore'
-import { GameEngine, submitArchive } from '@/api'
+import { GameEngine } from '@/services/gameEngine'
+import { submitArchive } from '@/api'
 import wechatQrcode from '@/assets/微信收款码.png'
 import alipayQrcode from '@/assets/支付宝收款码.jpg'
 

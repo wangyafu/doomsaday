@@ -283,7 +283,7 @@ function continueGame() {
     <p class="mt-8 text-gray-600 text-sm">点击选择末日场景开始游戏</p>
     
     <!-- 末世档案馆 -->
-    <div class="mt-12 w-full max-w-4xl px-4">
+    <div class="mt-12 w-full max-w-7xl px-4">
       <ArchiveGallery />
     </div>
     
