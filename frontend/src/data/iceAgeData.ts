@@ -199,7 +199,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 300,
         space: 2,
         category: 'emotional',
-        description: '厚实的棉衣，能有效保暖',
+        description: '寒风无法穿透的堡垒，温暖是末世的特权。',
         icon: '🧥',
         hidden: '穿戴后降低寒冷伤害'
     },
@@ -209,7 +209,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 400,
         space: 3,
         category: 'emotional',
-        description: '保暖睡袋，睡眠更安稳',
+        description: '梦里没有寒冷，只有旧世界的暖阳。',
         icon: '🛏️',
         hidden: '休息时HP恢复+5，防止夜间失温'
     },
@@ -219,7 +219,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 50,
         space: 1,
         category: 'emotional',
-        description: '一次性发热贴',
+        description: '掌心的一团火，点燃求生的希望。',
         icon: '🔥',
         hidden: '一次性消耗品，使用后当天不受寒冷伤害'
     },
@@ -230,7 +230,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 50,
         space: 2,
         category: 'food',
-        description: '可用于取暖和烧水',
+        description: '燃烧自己，照亮末世。比黄金更珍贵的黑色石头。',
         icon: '⬛',
         hidden: '每块煤炭可供暖1天，比木柴更高效'
     },
@@ -240,7 +240,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 25,
         space: 2,
         category: 'food',
-        description: '便宜但燃烧快',
+        description: '短暂的光热，原始文明的余晖。',
         icon: '🪵',
         hidden: '每捆木柴可供暖半天'
     },
@@ -250,7 +250,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 200,
         space: 2,
         category: 'food',
-        description: '高效燃料，需小心储存',
+        description: '工业时代的血液，狂暴而温暖。',
         icon: '⛽',
         hidden: '可用于发电机或应急取暖，但易燃危险'
     },
@@ -261,7 +261,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 25,
         space: 1,
         category: 'food',
-        description: '保质期长的食物',
+        description: '一口回到旧世界，能量是生存的硬通货。',
         icon: '🥫',
         hidden: '每天消耗1个维持生存'
     },
@@ -271,7 +271,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 20,
         space: 1,
         category: 'food',
-        description: '高热量应急食品',
+        description: '压缩的生命，咽下去就能活下去。',
         icon: '🍪',
         hidden: '每天消耗1个维持生存，提供额外热量抵御寒冷'
     },
@@ -281,7 +281,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 60,
         space: 2,
         category: 'food',
-        description: '需要加热食用',
+        description: '冰封的蛋白质，从猎物身上夺取的生机。',
         icon: '🥩',
         hidden: '加热后食用HP+5，生吃可能生病'
     },
@@ -291,7 +291,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 30,
         space: 2,
         category: 'food',
-        description: '生存必需品',
+        description: '生命之源，别让它结冰。',
         icon: '💧',
         hidden: '每天消耗1单位，缺水会快速损失HP'
     },
@@ -302,7 +302,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 30,
         space: 1,
         category: 'weapon',
-        description: '生火工具',
+        description: '普罗米修斯的火种，文明的最后星火。',
         icon: '🔥',
         hidden: '用于点燃燃料，丢失后无法生火取暖'
     },
@@ -312,7 +312,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 150,
         space: 2,
         category: 'weapon',
-        description: '可劈柴可防身',
+        description: '下砍木材，上劈敌人。',
         icon: '🪓',
         hidden: '近战武器，也可用于收集木柴'
     },
@@ -322,7 +322,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 300,
         space: 4,
         category: 'weapon',
-        description: '雪地运输工具',
+        description: '在雪原上滑行，带走一切值得带走的东西。',
         icon: '🛷',
         hidden: '外出搜索时可携带更多物资回来'
     },
@@ -332,7 +332,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 80,
         space: 2,
         category: 'weapon',
-        description: '清雪和挖掘',
+        description: '挖掘希望，虽然挖到的往往是绝望。',
         icon: '⛏️',
         hidden: '可用于清除积雪、挖掘物资'
     },
@@ -343,7 +343,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 100,
         space: 1,
         category: 'medical',
-        description: '治疗冻伤',
+        description: '别让手指像冰雕一样碎裂。',
         icon: '🧴',
         hidden: '治疗冻伤状态，HP+10'
     },
@@ -353,7 +353,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 200,
         space: 1,
         category: 'medical',
-        description: '治疗感染',
+        description: '与死神赛跑的筹码，微观战场的救星。',
         icon: '💊',
         hidden: '治疗感染和疾病，HP+15'
     },
@@ -363,7 +363,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 80,
         space: 1,
         category: 'medical',
-        description: '缓解疼痛',
+        description: '疼痛是活着的证明，但有时你需要忘了它。',
         icon: '💉',
         hidden: 'HP+5，暂时忽略伤痛debuff'
     },
@@ -373,7 +373,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 500,
         space: 2,
         category: 'medical',
-        description: '综合医疗用品',
+        description: '缝合伤口，修补破碎的生命。',
         icon: '🩹',
         hidden: 'HP+30，可治疗多种伤病'
     },
@@ -384,7 +384,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 30,
         space: 1,
         category: 'emotional',
-        description: '打发时间',
+        description: '在绝望中赌一把，输赢都是明天。',
         icon: '🃏',
         hidden: '可重复使用，使用后SAN+3'
     },
@@ -394,7 +394,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 150,
         space: 1,
         category: 'emotional',
-        description: '收听外界信息',
+        description: '静电杂音中，寻找人类存在的证据。',
         icon: '📻',
         hidden: '可收听广播获取情报，SAN+5，需要电池'
     },
@@ -404,7 +404,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 200,
         space: 1,
         category: 'emotional',
-        description: '暖身又解忧',
+        description: '液体的火焰，麻醉神经，驱散恐惧。',
         icon: '🥃',
         hidden: '一次性消耗，SAN+10，同时提供短暂抗寒效果'
     },
@@ -414,7 +414,7 @@ export const ICE_AGE_SHOP_ITEMS: ShopItem[] = [
         price: 30,
         space: 1,
         category: 'emotional',
-        description: '阅读消磨时间',
+        description: '身体被囚禁在冰雪中，灵魂却可以在书中流浪。',
         icon: '📚',
         hidden: '可重复使用，使用后SAN+5'
     }

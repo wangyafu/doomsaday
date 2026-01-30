@@ -259,8 +259,11 @@ onUnmounted(() => {
           <!-- 名称 -->
           <h3 class="text-sm font-bold text-center mb-1 text-white truncate">{{ item.name }}</h3>
           
+          <!-- 描述 -->
+          <p class="text-xs text-gray-300 mt-1 line-clamp-2 min-h-[2rem]">{{ item.description }}</p>
+          
           <!-- 价格和空间 -->
-          <div class="flex justify-between text-xs text-gray-400">
+          <div class="flex justify-between text-xs text-gray-400 mt-2">
             <span>¥{{ item.price }}</span>
             <span>{{ item.space }}格</span>
           </div>
@@ -316,6 +319,14 @@ onUnmounted(() => {
 <style scoped>
 .active\:scale-95:active {
   transform: scale(0.95);
+}
+
+/* 限制描述文本为2行 */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* 隐藏滚动条但保持滚动功能 */
