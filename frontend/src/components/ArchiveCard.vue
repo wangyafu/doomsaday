@@ -126,16 +126,6 @@ const handleLike = () => {
       </div>
     </div>
 
-    <!-- 高光时刻（仅丧尸） -->
-    <div 
-      v-if="isZombie && record.extra_info?.highlight_moment" 
-      class="rounded-lg p-2.5 mb-3"
-      :class="[themeColor.extraBg, themeColor.extraBorder]"
-    >
-      <p :class="['text-xs mb-1', themeColor.extraText]">⭐ 高光时刻</p>
-      <p class="text-gray-300 text-xs">{{ record.extra_info.highlight_moment }}</p>
-    </div>
-
     <!-- 天赋回顾（仅冰河） -->
     <div 
       v-if="!isZombie && record.extra_info?.talents?.length" 
